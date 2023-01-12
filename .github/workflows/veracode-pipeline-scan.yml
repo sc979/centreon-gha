@@ -11,11 +11,10 @@ on:
       - unlocked
 
 env:
-  COMPONENT_NAME: "${{ github.event.pull_request.base.repo.name }}"
+  ZIP_NAME: "${{ github.event.pull_request.base.repo.name }}-${{ github.event.pull_request.number }}"
 
 jobs:
   build:
-    name: Pipeline scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -24,19 +23,37 @@ jobs:
         run: ls -la
 
       - name: debug - Zip name
-        run: echo "${{ github.event.pull_request.base.repo.name }}-${{ github.event.pull_request.number }}"
+        run: echo "${{ env.ZIP_NAME }}"
 
       - name: Create zip file
-        run: zip -r ${{ github.event.pull_request.base.repo.name }}-${{ github.event.pull_request.number }} *
+        run: zip -r ${{ env.ZIP_NAME }} *
 
-      - name: Veracode Upload And Scan
-          uses: veracode/Veracode-pipeline-scan-action@pipeline-scan-beta-v0.0.4
-          with:
-            vid: ${{ secrets.VERACODE_API_ID }}
-            vkey: ${{ secrets.VERACODE_API_KEY }}
-            file: ${{ github.event.pull_request.base.repo.name }}-${{ github.event.pull_request.number }}
-            request_policy: "test POV"
-            fail_build: true
-            debug: 1
-            verbose: true
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.ZIP_NAME }}
+          path: poc_target/${{ env.ZIP_NAME }}
 
+  pipeline_scan:
+    needs: build
+    runs-on: ubuntu-latest
+    name: pipeline scan
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v3
+
+      - name: get archive
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.ZIP_NAME }}
+
+      - name: pipeline-scan action step
+        id: pipeline-scan
+        uses: veracode/Veracode-pipeline-scan-action@pipeline-scan-beta-v0.0.4
+        with:
+          vid: ${{ secrets.VERACODE_API_ID }}
+          vkey: ${{ secrets.VERACODE_API_KEY }}
+          file: ${{ env.ZIP_NAME }}
+          request_policy: "test POV"
+          fail_build: true
+          debug: 1
+          verbose: true
