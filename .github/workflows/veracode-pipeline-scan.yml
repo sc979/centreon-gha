@@ -37,7 +37,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: ${{ env.ZIP_NAME }}
-          path: poc_target/${{ env.ZIP_NAME }}
+          path: poc_target/${{ env.ZIP_NAME }}.zip
 
   pipeline_scan:
     needs: build
@@ -50,7 +50,7 @@ jobs:
       - name: get archive
         uses: actions/download-artifact@v3
         with:
-          name: ${{ env.ZIP_NAME }}
+          name: ${{ env.ZIP_NAME }}.zip
 
       - name: pipeline-scan action step
         id: pipeline-scan
