@@ -26,7 +26,7 @@ jobs:
         run: echo "${{ env.ZIP_NAME }}"
 
       - name: Create zip file
-        run: zip -r ${{ env.ZIP_NAME }}
+        run: zip -r ${{ env.ZIP_NAME }} *
 
       - name: debug - Check location
         run: ls -la
