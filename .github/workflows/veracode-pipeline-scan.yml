@@ -36,8 +36,8 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          name: ${{ env.ZIP_NAME }}
-          path: poc_target/${{ env.ZIP_NAME }}.zip
+          name: ${{ env.ZIP_NAME }}.zip
+          path: ${{ env.ZIP_NAME }}.zip
 
   pipeline_scan:
     needs: build
@@ -58,7 +58,7 @@ jobs:
         with:
           vid: ${{ secrets.VERACODE_API_ID }}
           vkey: ${{ secrets.VERACODE_API_KEY }}
-          file: ${{ env.ZIP_NAME }}
+          file: ${{ env.ZIP_NAME }}.zip
           request_policy: "test POV"
           fail_build: true
           debug: 1
