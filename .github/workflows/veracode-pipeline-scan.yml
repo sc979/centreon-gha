@@ -11,7 +11,7 @@ on:
       - unlocked
 
 env:
-  ZIP_NAME: "${{ github.event.pull_request.base.repo.name }}-${{ github.event.pull_request.number }}"
+  ZIP_NAME: "${{ github.event.pull_request.base.repo.name }}-${{ github.event.head_ref  || github.run_id  }}"
 
 jobs:
   build:
@@ -27,6 +27,9 @@ jobs:
 
       - name: debug - Check ref name
         run: echo "${{ github.ref_name }}"
+
+      - name: debug - Check run id
+        run: echo "${{ github.run_id }}"
 
       - name: debug - Zip name
         run: echo "${{ env.ZIP_NAME }}"
