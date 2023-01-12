@@ -32,7 +32,7 @@ jobs:
         run: ls -la
 
       - name: Create zip file
-        run: mv ${{ env.ZIP_NAME }} poc_target
+        run: mv ${{ env.ZIP_NAME }}.zip poc_target
 
       - uses: actions/upload-artifact@v3
         with:
