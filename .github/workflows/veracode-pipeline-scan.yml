@@ -1,0 +1,77 @@
+name: Launch Veracode pipeline scan
+
+on:
+  pull_request:
+    types:
+      - synchronize
+      - opened
+      - edited
+      - ready_for_review
+      - reopened
+      - unlocked
+
+env:
+  ZIP_NAME: "${{ github.event.pull_request.base.repo.name }}-${{ github.event.head_ref  || github.run_id  }}"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: debug - Check location
+        run: ls -la
+
+      - name: debug - Check head ref
+        run: echo "${{ github.head_ref }}"
+
+      - name: debug - Check ref name
+        run: echo "${{ github.ref_name }}"
+
+      - name: debug - Check run id
+        run: echo "${{ github.run_id }}"
+
+      - name: debug - Zip name
+        run: echo "${{ env.ZIP_NAME }}"
+
+      - name: Create zip file
+        run: zip -r ${{ env.ZIP_NAME }} *
+
+      - name: debug - Check location
+        run: ls -la
+
+      - name: Move zip file
+        run: mv ${{ env.ZIP_NAME }}.zip poc_build
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.ZIP_NAME }}.zip
+          path: poc_build/${{ env.ZIP_NAME }}.zip
+
+  pipeline_scan:
+    needs: build
+    runs-on: ubuntu-latest
+    name: pipeline scan
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v3
+
+      - name: debug - Check location
+        run: ls -la
+
+      - name: get archive
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.ZIP_NAME }}.zip
+
+      - name: pipeline-scan action step
+        id: pipeline-scan
+        uses: veracode/Veracode-pipeline-scan-action@pipeline-scan-beta-v0.0.4
+        with:
+          vid: ${{ secrets.VERACODE_API_ID }}
+          vkey: ${{ secrets.VERACODE_API_KEY }}
+          file: ${{ env.ZIP_NAME }}.zip
+          request_policy: "test POV"
+          fail_build: true
+          #debug: 1
+          #verbose: true
