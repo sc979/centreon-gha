@@ -1,0 +1,42 @@
+name: Launch Veracode pipeline scan
+
+on:
+  pull_request:
+    types:
+      - synchronize
+      - opened
+      - edited
+      - ready_for_review
+      - reopened
+      - unlocked
+
+env:
+  COMPONENT_NAME: "${{ github.event.pull_request.base.repo.name }}"
+
+jobs:
+  build:
+    name: Pipeline scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: debug - Check location
+        run: ls -la
+
+      - name: debug - Zip name
+        run: echo "${{ github.event.pull_request.base.repo.name }}-${{ github.event.pull_request.number }}"
+
+      - name: Create zip file
+        run: zip -r ${{ github.event.pull_request.base.repo.name }}-${{ github.event.pull_request.number }} *
+
+      - name: Veracode Upload And Scan
+          uses: veracode/Veracode-pipeline-scan-action@pipeline-scan-beta-v0.0.4
+          with:
+            vid: ${{ secrets.VERACODE_API_ID }}
+            vkey: ${{ secrets.VERACODE_API_KEY }}
+            file: ${{ github.event.pull_request.base.repo.name }}-${{ github.event.pull_request.number }}
+            request_policy: "test POV"
+            fail_build: true
+            debug: 1
+            verbose: true
+
