@@ -13,7 +13,7 @@ on:
       - unlocked
 
 env:
-  ZIP_NAME: "${{ github.event.pull_request.base.repo.name }}-${{ github.event.head_ref }}"
+  ZIP_NAME: "${{ github.event.pull_request.base.name }}-${{ github.head_ref }}"
 
 jobs:
   build:
@@ -76,13 +76,13 @@ jobs:
           request_policy: "test POV"
           fail_build: true
           
-          debug: 1
-          verbose: true
-          
           store_baseline_file: true
           store_baseline_file_branch: "develop_scan"
           create_baseline_from: standard
-          baseline_file: "${{ github.event.pull_request.base.repo.name }}-develop.json"
+          #baseline_file: "${{ github.event.pull_request.base.repo.name }}-develop.json"
+
+          #debug: 1
+          verbose: true
 
   veracode-sandbox-task:
     needs: build
