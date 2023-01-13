@@ -94,7 +94,7 @@ jobs:
       - name: Promote Scan on Approval
         env:
           VERACODE_API_ID: ${{ secrets.VERACODE_API_ID }}
-          VERACODE_API_SECRET: ${{ secrets.VERACODE_API_SECRET }}
+          VERACODE_API_SECRET: ${{ secrets.VERACODE_API_KEY }}
         uses: lerer/veracode-sandboxes-helper@v1.0.1
         with:
           activity: "promote-latest-scan"
