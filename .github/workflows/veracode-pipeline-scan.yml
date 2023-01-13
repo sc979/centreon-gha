@@ -1,4 +1,4 @@
-name: Launch Veracode pipeline scan
+name: Launch Veracode scan
 
 on:
   push:
