@@ -2,7 +2,7 @@ name: Launch Veracode scan on develop
 
 on:
   push:
-    branches: [ develop, master, veracode-main-scan ]
+    branches: [ develop, master ]
 
 env:
   ZIP_NAME: "centreon_${{ github.head_ref || github.ref_name }}"
@@ -69,7 +69,7 @@ jobs:
           filepath: ${{ env.ZIP_NAME }}.zip
           vid: ${{ secrets.VERACODE_API_ID }}
           vkey: ${{ secrets.VERACODE_API_KEY }}
-          scantimeout: 30
+          scantimeout: 45
           #deleteincompletescan: true
         continue-on-error: True
 
