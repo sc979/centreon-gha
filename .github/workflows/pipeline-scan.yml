@@ -73,9 +73,10 @@ jobs:
 
       - name: Check if the report exist
         run: |
-          if [[ ! -f ${{ env.REPORT_FILENAME }} ]];then
+          if [ ! -f ${{ env.REPORT_FILENAME }} ]
+          then
             touch ${{ env.REPORT_FILENAME }}
-          elif
+          else
             echo "File exists"
           fi
           ls -la
