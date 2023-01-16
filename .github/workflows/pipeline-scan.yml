@@ -75,6 +75,7 @@ jobs:
         run: |
           if [ ! -f ${{ env.REPORT_FILENAME }} ]
           then
+          echo "Creating file"
             touch ${{ env.REPORT_FILENAME }}
           else
             echo "File exists"
