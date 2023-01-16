@@ -62,13 +62,14 @@ jobs:
         uses: veracode/veracode-uploadandscan-action@master
         id: upload_and_scan
         with:
-          app-name: "sc979/centreon"
+          appname: "sc979/centreon"
           createprofile: true
-          version: ${{ github.ref_name }}
+          version: 23.04-beta.1
           filepath: ${{ env.ZIP_NAME }}.zip
           vid: ${{ secrets.VERACODE_API_ID }}
           vkey: ${{ secrets.VERACODE_API_KEY }}
           scantimeout: 30
+          #deleteincompletescan: true
         continue-on-error: True
 
   pipeline-scan:
@@ -157,6 +158,6 @@ jobs:
 #        uses: lerer/veracode-sandboxes-helper@v1.0.1
 #        with:
 #          activity: "promote-latest-scan"
-#          app-name: "sc979/centreon"
+#          appname: "sc979/centreon"
 #          sandbox-name: "${{ github.event.pull_request.base.repo.name }}-${{ github.ref_name }}"
 #          delete-on-promote: true # Optional: also Deleting the Sandbox
