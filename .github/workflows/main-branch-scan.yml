@@ -3,12 +3,6 @@ name: Launch Veracode scans on develop
 on:
   push:
     branches: [ develop, master, veracode-main-scan ]
-  pull_request:
-    types:
-      - synchronize
-      - opened
-      - edited
-      - reopened
 
 env:
   ZIP_NAME: "centreon_${{ github.head_ref || github.ref_name }}"
@@ -113,7 +107,7 @@ jobs:
           path: filtered_${{ env.REPORT_FILENAME }}
 
   commit-baseline-file:
-    needs: veracode-pipeline-scan
+    needs: pipeline-scan
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

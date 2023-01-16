@@ -1,14 +1,14 @@
 name: Launch Veracode pipeline scan
 
-#on:
-#  push:
-#    branches-ignore: [ 'develop', 'master' ]
-#  pull_request:
-#    types:
-#      - synchronize
-#      - opened
-#      - edited
-#      - reopened
+on:
+  push:
+    branches-ignore: [ 'develop', 'master' ]
+  pull_request:
+    types:
+      - synchronize
+      - opened
+      - edited
+      - reopened
 
 env:
   ZIP_NAME: "centreon_${{ github.head_ref || github.ref_name }}"
