@@ -48,12 +48,12 @@ jobs:
         run: ls -la
 
       - name: Move zip file
-        run: mv ${{ env.ZIP_NAME }}.zip poc_build
+        run: mv ${{ env.ZIP_NAME }}.zip /tmp
 
       - uses: actions/upload-artifact@v3
         with:
           name: ${{ env.ZIP_NAME }}.zip
-          path: poc_build/${{ env.ZIP_NAME }}.zip
+          path: /tmp/${{ env.ZIP_NAME }}.zip
 
   pipeline_scan:
     needs: build
