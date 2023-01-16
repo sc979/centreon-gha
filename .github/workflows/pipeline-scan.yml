@@ -6,6 +6,7 @@ on:
       - synchronize
       - opened
       - reopened
+    branches: [ "**", "!veracode-main-scan" ]
 
 env:
   ZIP_NAME: "centreon_${{ github.head_ref || github.ref_name }}"
