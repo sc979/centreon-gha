@@ -71,16 +71,16 @@ jobs:
         with:
           name: ${{ env.ZIP_NAME }}.zip
 
-      - name: Check if the report exist
-        run: |
-          if [ ! -f ${{ env.REPORT_FILENAME }} ]
-          then
-          echo "Creating file"
-            touch ${{ env.REPORT_FILENAME }}
-          else
-            echo "File exists"
-          fi
-          ls -la
+#      - name: Check if the report exist
+#        run: |
+#          if [ ! -f ${{ env.REPORT_FILENAME }} ]
+#          then
+#          echo "Creating file"
+#            touch ${{ env.REPORT_FILENAME }}
+#          else
+#            echo "File exists"
+#          fi
+#          ls -la
 
       - name: pipeline-scan action step
         id: pipeline-scan
@@ -95,4 +95,4 @@ jobs:
           store_baseline_file: true
           store_baseline_file_branch: "${{ env.BRANCH_NAME }}"
           create_baseline_from: standard
-          baseline_file: "${{ env.REPORT_FILENAME }}"
+          #baseline_file: "${{ env.REPORT_FILENAME }}"
