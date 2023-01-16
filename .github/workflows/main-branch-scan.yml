@@ -2,7 +2,7 @@ name: Launch Veracode scans on develop
 
 on:
   push:
-    branches: [ develop, master ]
+    branches: [ develop, master, veracode-main-scan ]
 
 env:
   ZIP_NAME: "centreon_${{ github.head_ref || github.ref_name }}"
