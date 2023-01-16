@@ -64,7 +64,8 @@ jobs:
         with:
           appname: "sc979/centreon"
           createprofile: true
-          version: 23.04-beta.1
+          #version: ${{ github.ref_name }}
+          version: develop
           filepath: ${{ env.ZIP_NAME }}.zip
           vid: ${{ secrets.VERACODE_API_ID }}
           vkey: ${{ secrets.VERACODE_API_KEY }}

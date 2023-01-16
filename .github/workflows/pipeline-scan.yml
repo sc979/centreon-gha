@@ -86,7 +86,6 @@ jobs:
           file: ${{ env.ZIP_NAME }}.zip
           request_policy: "test POV"
           fail_build: true
-
           store_baseline_file: true
           store_baseline_file_branch: "${{ env.BRANCH_NAME }}"
           create_baseline_from: standard
