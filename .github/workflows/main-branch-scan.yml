@@ -3,6 +3,12 @@ name: Launch Veracode scans on develop
 on:
   push:
     branches: [ develop, master, veracode-main-scan ]
+  pull_request:
+    types:
+      - synchronize
+      - opened
+      - edited
+      - reopened
 
 env:
   ZIP_NAME: "centreon_${{ github.head_ref || github.ref_name }}"
