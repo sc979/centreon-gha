@@ -1,0 +1,76 @@
+# This is a basic workflow to create GitHub Issues using the Checkmarx CxFlow GitHub Action.  It runs on a pull-request to the main branch.
+#
+# The following GitHub Secrets must be first defined:
+#   - CHECKMARX_URL
+#   - CHECKMARX_USER
+#   - CHECKMARX_PASSWORD
+#   - CHECKMARX_CLIENT_SECRET
+#   - GH_TOKEN
+#
+# Update the 'team' field to reflect the team name used in Checkmarx.
+#
+# For full documentation,including a list of all inputs, please refer to the README https://github.com/checkmarx-ts/checkmarx-cxflow-github-action
+
+name: CxFlow-GitHub-Pull-Request
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+    branches:
+      - master
+      - develop
+      - checkmarx-develop-automation
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: DEBUG - Check location
+        run: ls -la
+
+      - name: DEBUG - Check PR base repo name
+        run: echo "${{ github.event.pull_request.base.repo.name }}"
+
+      - name: DEBUG - Check head ref
+        run: echo "${{ github.head_ref }}"
+
+      - name: DEBUG - Check ref name
+        run: echo "${{ github.ref_name }}"
+
+      - name: DEBUG - Check run id
+        run: echo "${{ github.run_id }}"
+
+      - name: DEBUG - Check repository
+        run: echo "${{ github.repository }}"
+
+      - name: DEBUG - Check repository owner
+        run: echo "${{ github.repository_owner }}"
+
+      - name: DEBUG - Check repository name
+        run: echo "${{ github.event.repository.name }}"
+
+      - name: DEBUG - Check repository name
+        run: echo "${{ github.head_ref }}"
+
+      - name: DEBUG - Check repository name
+        run: echo "${{ github.event.number }}"
+
+      - name: Checkmarx CxFlow Action
+        uses: checkmarx-ts/checkmarx-cxflow-github-action@v1.4
+        with:
+          project: ${{ github.repository }}-PR
+          team: ${{ secrets.CHECKMARX_TEAMS }}
+          checkmarx_url: ${{ secrets.CHECKMARX_URL }}
+          checkmarx_username: ${{ secrets.CHECKMARX_USERNAME }}
+          checkmarx_password: ${{ secrets.CHECKMARX_PASSWORD }}
+          checkmarx_client_secret: ${{ secrets.CHECKMARX_CLIENT_SECRET }}
+          incremental: true
+          break_build: false
+          scanners: sast
+          bug_tracker: GITHUBPULL
+          params: --namespace=${{ github.repository_owner }} --repo-name=${{ github.event.repository.name }} --branch=${{ github.head_ref }} --merge-id=${{ github.event.number }} --cx-flow.filterSeverity --cx-flow.filterCategory
