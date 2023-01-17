@@ -1,19 +1,16 @@
 name: Launch Veracode pipeline scan
 
 on:
-#  push:
-#    branches-ignore: [ 'develop', 'master' ]
   pull_request:
     types:
       - synchronize
       - opened
-      - edited
       - reopened
 
 env:
   ZIP_NAME: "centreon_${{ github.head_ref || github.ref_name }}"
   BRANCH_NAME: "baseline-develop"
-  REPORT_FILENAME: "develop_results.json"
+  REPORT_FILENAME: "result.json"
 
 jobs:
   build:
@@ -89,8 +86,7 @@ jobs:
           file: ${{ env.ZIP_NAME }}.zip
           request_policy: "test POV"
           fail_build: true
-
           store_baseline_file: true
           store_baseline_file_branch: "${{ env.BRANCH_NAME }}"
           create_baseline_from: standard
-          #baseline_file: "${{ env.REPORT_FILENAME }}"
+          baseline_file: "${{ env.REPORT_FILENAME }}"

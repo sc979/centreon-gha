@@ -1,4 +1,4 @@
-name: Launch Veracode scans on develop
+name: Launch Veracode scan on develop
 
 on:
   push:
@@ -15,21 +15,21 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: DEBUG - Check location
-        run: ls -la
-
-      - name: DEBUG - Check PR base repo name
-        run: echo "${{ github.event.pull_request.base.repo.name }}"
-
-      - name: DEBUG - Check head ref
-        run: echo "${{ github.head_ref }}"
-
-      - name: DEBUG - Check ref name
-        run: echo "${{ github.ref_name }}"
-
-      - name: DEBUG - Check run id
-        run: echo "${{ github.run_id }}"
-
+#      - name: DEBUG - Check location
+#        run: ls -la
+#
+#      - name: DEBUG - Check PR base repo name
+#        run: echo "${{ github.event.pull_request.base.repo.name }}"
+#
+#      - name: DEBUG - Check head ref
+#        run: echo "${{ github.head_ref }}"
+#
+#      - name: DEBUG - Check ref name
+#        run: echo "${{ github.ref_name }}"
+#
+#      - name: DEBUG - Check run id
+#        run: echo "${{ github.run_id }}"
+#
       - name: DEBUG - Zip name
         run: echo "${{ env.ZIP_NAME }}"
 
@@ -62,13 +62,15 @@ jobs:
         uses: veracode/veracode-uploadandscan-action@master
         id: upload_and_scan
         with:
-          app-name: "sc979/centreon"
+          appname: "sc979/centreon"
           createprofile: true
-          version: ${{ github.ref_name }}
+          #version: ${{ github.ref_name }}
+          version: develop
           filepath: ${{ env.ZIP_NAME }}.zip
           vid: ${{ secrets.VERACODE_API_ID }}
           vkey: ${{ secrets.VERACODE_API_KEY }}
-          scantimeout: 30
+          scantimeout: 45
+          #deleteincompletescan: true
         continue-on-error: True
 
   pipeline-scan:
@@ -83,6 +85,7 @@ jobs:
         with:
           name: ${{ env.ZIP_NAME }}.zip
           path: /tmp
+
       - name: pipeline-scan
         run: |
           java -jar /opt/veracode/pipeline-scan.jar \
@@ -90,24 +93,30 @@ jobs:
             -vkey "${{secrets.VERACODE_API_KEY}}" \
             --fail_on_severity="Very High, High" \
             --file /tmp/${{ env.ZIP_NAME }}.zip \
-            -jf ${{ env.REPORT_FILENAME }} \
-            -fjf filtered_${{ env.REPORT_FILENAME }}
+            -jf result.json \
+            -fjf filtered_result.json
         continue-on-error: true
+
+      - name: DEBUG - Check location
+        run: ls -la
+
+      - name: DEBUG - Check location tmp
+        run: ls -la /tmp
 
       - name: save standard results
         uses: actions/upload-artifact@v3
         with:
-          name: PipelineScanResults
-          path: ${{ env.REPORT_FILENAME }}
+          name: result.json
+          path: result.json
 
       - name: save filtered results
         uses: actions/upload-artifact@v3
         with:
-          name: filtered-results
-          path: filtered_${{ env.REPORT_FILENAME }}
+          name: filtered_result.json
+          path: filtered_result.json
 
   commit-baseline-file:
-    needs: veracode-pipeline-scan
+    needs: pipeline-scan
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -115,16 +124,21 @@ jobs:
       - name: get scan results
         uses: actions/download-artifact@v3
         with:
-          name: PipelineScanResults
+          name: result.json
+
+      - name: get filtered scan results
+        uses: actions/download-artifact@v3
+        with:
+          name: filtered_result.json
 
       - name: DEBUG - Check location
         run: ls -la
 
-      - name: commit baseline file to feature branches
+      - name: commit baseline file to feature branche
         run: |
           git config --global user.name "${{ secrets.USERNAME }}"
           git config --global user.email "${{ secrets.USERMAIL }}"
-          git add "${{ env.REPORT_FILENAME }}" "filtered_${{ env.REPORT_FILENAME }}"
+          git add "result.json" "filtered_result.json"
           git stash
           git pull origin ${{ env.BRANCH_NAME }} || echo "Couldn't find remote branch"
           git checkout stash -- .
@@ -145,6 +159,6 @@ jobs:
 #        uses: lerer/veracode-sandboxes-helper@v1.0.1
 #        with:
 #          activity: "promote-latest-scan"
-#          app-name: "sc979/centreon"
+#          appname: "sc979/centreon"
 #          sandbox-name: "${{ github.event.pull_request.base.repo.name }}-${{ github.ref_name }}"
 #          delete-on-promote: true # Optional: also Deleting the Sandbox
