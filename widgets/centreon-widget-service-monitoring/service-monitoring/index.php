@@ -1,7 +1,6 @@
 <?php
-
 /*
- * Copyright 2005-2020 Centreon
+ * Copyright 2005-2019 Centreon
  * Centreon is developed by : Julien Mathis and Romain Le Merlus under
  * GPL Licence 2.0.
  *
@@ -20,11 +19,11 @@
  * combined work based on this program. Thus, the terms and conditions of the GNU
  * General Public License cover the whole combination.
  *
- * As a special exception, the copyright holders of this program give Centreon
+ * As a special exception, the copyright holders of this program give CENTREON
  * permission to link this program with independent modules to produce an executable,
  * regardless of the license terms of these independent modules, and to copy and
- * distribute the resulting executable under terms of Centreon choice, provided that
- * Centreon also meet, for each linked independent module, the terms  and conditions
+ * distribute the resulting executable under terms of CENTREON choice, provided that
+ * CENTREON also meet, for each linked independent module, the terms  and conditions
  * of the license of that module. An independent module is a module which is not
  * derived from this program. If you modify this program, you may extend this
  * exception to your version of the program, but you are not obliged to do so. If you
@@ -45,21 +44,16 @@ if (!isset($_SESSION['centreon']) || !isset($_REQUEST['widgetId'])) {
     exit();
 }
 $centreon = $_SESSION['centreon'];
-$widgetId = filter_input(INPUT_GET, 'widgetId', FILTER_VALIDATE_INT, ['options' => ['default' => 0]]);
+$widgetId = $_REQUEST['widgetId'];
 
 try {
     $db = $dependencyInjector['configuration_db'];
     $widgetObj = new CentreonWidget($centreon, $db);
     $preferences = $widgetObj->getWidgetPreferences($widgetId);
-    $autoRefresh = filter_var($preferences['refresh_interval'], FILTER_VALIDATE_INT);
-    if ($autoRefresh === false || $autoRefresh < 5) {
-        $autoRefresh = 30;
+    $autoRefresh = 0;
+    if (isset($preferences['refresh_interval'])) {
+        $autoRefresh = $preferences['refresh_interval'];
     }
-    $variablesThemeCSS = match ($centreon->user->theme) {
-        'light' => "Generic-theme",
-        'dark' => "Centreon-Dark",
-        default => throw new \Exception('Unknown user theme : ' . $centreon->user->theme),
-    };
 } catch (Exception $e) {
     echo $e->getMessage() . "<br/>";
     exit;
@@ -79,6 +73,5 @@ if ($preferences['more_views']) {
     $bMoreViews = $preferences['more_views'];
 }
 $template->assign('more_views', $bMoreViews);
-$template->assign('theme', $variablesThemeCSS);
 
 $template->display('index.ihtml');
