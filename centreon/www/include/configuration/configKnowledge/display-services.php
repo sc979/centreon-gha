@@ -224,7 +224,9 @@ try {
         }
     }
 
-    $rows = $pearDB->query("SELECT FOUND_ROWS()")->fetchColumn();
+    $res = $pearDB->query("SELECT FOUND_ROWS() as numrows");
+    $row = $res->fetchRow();
+    $rows = $row['numrows'];
 
     /*
      * Create Diff

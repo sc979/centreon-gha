@@ -1,7 +1,7 @@
 <?php
 /**
- * Copyright 2005-2019 Centreon
- * Centreon is developed by : Julien Mathis and Romain Le Merlus under
+ * Copyright 2005-2015 Centreon
+ * Centreon is developped by : Julien Mathis and Romain Le Merlus under
  * GPL Licence 2.0.
  *
  * This program is free software; you can redistribute it and/or modify it under
@@ -43,13 +43,7 @@
 class CentreonDowntime
 {
     protected $db;
-
-    //$safe is the key to be bound
     protected $search = '';
-
-    //$safeSearch is the value to bind in the prepared statement
-    protected $safeSearch = '';
-
     protected $nbRows = null;
     protected $localCommands;
     protected $localCmdFile = '';
@@ -90,54 +84,45 @@ class CentreonDowntime
             . 'FROM downtime_period ';
 
         $res = $this->db->query($query);
-        while ($row = $res->fetch()) {
+        while ($row = $res->fetchRow()) {
             $this->periods[$row['dt_id']][] = $row;
         }
     }
 
     /**
-     * Set the string to filter the results
+     * Set the string for filter the display
      *
-     * The string search is set to filter
-     * In SQL, the string is "%$search%"
+     * The string search is set for filter
+     * In SQL, the the string is "%$search%"
      *
      * @param string $search The string for filter
      */
-    public function setSearch(string $search = '')
+    public function setSearch($search = '')
     {
-        $this->safeSearch = '';
         if ('' !== $search) {
-            $this->safeSearch = htmlentities($search, ENT_QUOTES, "UTF-8");
-            $this->search = "dt_name LIKE :search";
+            $this->search = " dt_name LIKE '%" . htmlentities($search, ENT_QUOTES, "UTF-8") . "%'";
         }
     }
 
     /**
-     * Get the number of rows to display, when a search filter is applied
+     * Get the number of rows for display, with applied search filter
      *
      * @return int The number of rows
      */
     public function getNbRows()
     {
         /* Get the number of rows if getList is call before*/
-        if (!is_null($this->nbRows)) {
+        if (false === is_null($this->nbRows)) {
             return $this->nbRows;
         }
         /* Get the number of rows with a COUNT(*) */
-        $query = "SELECT COUNT(*) FROM downtime";
-        if ($this->search) {
-            $query .= " WHERE " . $this->search;
-        }
+        $query = "SELECT COUNT(*) FROM downtime" . $this->search;
         try {
-            $res = $this->db->prepare($query);
-            if ($this->search) {
-                $res->bindValue(':search', '%' . $this->safeSearch . '%', \PDO::PARAM_STR);
-            }
-            $res->execute();
+            $res = $this->db->query($query);
         } catch (\PDOException $e) {
             return 0;
         }
-        $row = $res->fetch();
+        $row = $res->fetchRow();
         $res->closeCursor();
         return $row["COUNT(*)"];
     }
@@ -164,33 +149,29 @@ class CentreonDowntime
     public function getList($num, $limit, $type = null)
     {
         if ($type == "h") {
-            $query = "SELECT SQL_CALC_FOUND_ROWS downtime.dt_id, dt_name, dt_description, dt_activate FROM downtime " .
-                "WHERE (downtime.dt_id IN(SELECT dt_id FROM downtime_host_relation) " .
-                "OR downtime.dt_id IN (SELECT dt_id FROM downtime_hostgroup_relation)) " .
+            $query = "SELECT SQL_CALC_FOUND_ROWS downtime.dt_id, dt_name, dt_description, dt_activate FROM downtime
+                WHERE (downtime.dt_id IN(SELECT dt_id FROM downtime_host_relation)
+                    OR downtime.dt_id IN (SELECT dt_id FROM downtime_hostgroup_relation)) " .
                 ($this->search == '' ? "" : " AND ") . $this->search .
                 " ORDER BY dt_name LIMIT " . $num * $limit . ", " . $limit;
         } elseif ($type == "s") {
-            $query = "SELECT SQL_CALC_FOUND_ROWS downtime.dt_id, dt_name, dt_description, dt_activate FROM downtime " .
-                "WHERE (downtime.dt_id IN (SELECT dt_id FROM downtime_service_relation) " .
-                "OR downtime.dt_id IN (SELECT dt_id FROM downtime_servicegroup_relation)) " .
+            $query = "SELECT SQL_CALC_FOUND_ROWS downtime.dt_id, dt_name, dt_description, dt_activate FROM downtime
+                WHERE (downtime.dt_id IN (SELECT dt_id FROM downtime_service_relation)
+                    OR downtime.dt_id IN (SELECT dt_id FROM downtime_servicegroup_relation)) " .
                 ($this->search == '' ? "" : " AND ") . $this->search .
                 " ORDER BY dt_name LIMIT " . $num * $limit . ", " . $limit;
         } else {
-            $query = "SELECT SQL_CALC_FOUND_ROWS downtime.dt_id, dt_name, dt_description, dt_activate FROM downtime " .
-                ($this->search == '' ? "" : "WHERE " . $this->search ) .
+            $query = "SELECT SQL_CALC_FOUND_ROWS downtime.dt_id, dt_name, dt_description, dt_activate
+                FROM downtime " . ($this->search == '' ? "" : "WHERE ") . $this->search .
                 " ORDER BY dt_name LIMIT " . $num * $limit . ", " . $limit;
         }
         try {
-            $res = $this->db->prepare($query);
-            if (!empty($this->safeSearch)) {
-                $res->bindValue(':search', '%' . $this->safeSearch . '%', \PDO::PARAM_STR);
-            }
-            $res->execute();
+            $res = $this->db->query($query);
         } catch (\PDOException $e) {
             return array();
         }
         $list = array();
-        while ($row = $res->fetch()) {
+        while ($row = $res->fetchRow()) {
             $list[] = $row;
         }
         $res->closeCursor();
@@ -248,15 +229,13 @@ class CentreonDowntime
      */
     public function getInfos($id)
     {
-        $query = "SELECT dt_name, dt_description, dt_activate FROM downtime WHERE dt_id = :id";
+        $query = "SELECT dt_name, dt_description, dt_activate FROM downtime WHERE dt_id=" . $id;
         try {
-            $res = $this->db->prepare($query);
-            $res->bindValue(':id', $id, PDO::PARAM_INT);
-            $res->execute();
+            $res = $this->db->query($query);
         } catch (\PDOException $e) {
             return array('name' => '', 'description' => '', 'activate' => '');
         }
-        $row = $res->fetch();
+        $row = $res->fetchRow();
         return array(
             'name' => $row['dt_name'],
             'description' => $row['dt_description'],
@@ -265,325 +244,191 @@ class CentreonDowntime
     }
 
     /**
-     * Intends to return hosts, hostgroups, services, servicesgroups linked to the recurrent downtime
+     * Get the list of relations for a downtime
      *
-     * @param integer $downtimeId
-     * @return array
+     * <code>
+     * $return_array =
+     *  array(
+     *      'host' => array, // The list of host id
+     *      'hostgrp' => array, // The list of hostgroup id
+     *      'svc' => array, // The list of service id
+     *      'svcgrp' => array, // The list of servicegroup id
+     *  )
+     * </code>
+     *
+     * @param int $id The downtime id
+     * @return array The list of relations
      */
-    public function getRelations(int $downtimeId): array
+    public function getRelations($id)
     {
-        $relations = [
-            'hosts' => [],
-            'hostgroups' => [],
-            'services' => [],
-            'servicegroups' => [],
-        ];
-
-        foreach (array_keys($relations) as $resourceType) {
-            switch ($resourceType) {
-                case 'hosts':
-                    $query = <<<'SQL'
-                        SELECT
-                            dhr.host_host_id AS resource_id,
-                            h.host_activate AS activated
-                        FROM downtime_host_relation dhr
-                        INNER JOIN host h
-                            ON dhr.host_host_id = h.host_id
-                        WHERE
-                            dt_id = :downtimeId;
-                        SQL;
+        $list = array(
+            "host" => array(),
+            "hostgrp" => array(),
+            "svc" => array(),
+            "svcgrp" => array()
+        );
+        foreach (array_keys($list) as $type) {
+            switch ($type) {
+                case 'host':
+                    $query = "SELECT host_host_id as obj_id FROM downtime_host_relation WHERE dt_id = ";
                     break;
-                case 'hostgroups':
-                    $query = <<<'SQL'
-                        SELECT
-                            dhgr.hg_hg_id AS resource_id,
-                            hg.hg_activate AS activated
-                        FROM downtime_hostgroup_relation dhgr
-                        INNER JOIN hostgroup hg
-                            ON dhgr.hg_hg_id = hg.hg_id
-                        WHERE
-                            dt_id = :downtimeId;
-                        SQL;
+                case 'hostgrp':
+                    $query = "SELECT hg_hg_id as obj_id FROM downtime_hostgroup_relation WHERE dt_id = ";
                     break;
-                case 'services':
-                    $query = <<<'SQL'
-                        SELECT CONCAT(dsr.host_host_id, CONCAT('-', dsr.service_service_id)) AS resource_id,
-                            s.service_activate AS activated
-                        FROM downtime_service_relation dsr
-                        INNER JOIN service s
-                            ON dsr.service_service_id = s.service_id
-                        WHERE
-                            dt_id = :downtimeId;
-                        SQL;
+                case 'svc':
+                    $query = "SELECT CONCAT(host_host_id, CONCAT('-', service_service_id)) as obj_id
+                        FROM downtime_service_relation WHERE dt_id = ";
                     break;
-                case 'servicegroups':
-                    $query = <<<'SQL'
-                        SELECT
-                            dsgr.sg_sg_id AS resource_id,
-                            sg.sg_activate AS activated
-                        FROM downtime_servicegroup_relation dsgr
-                        INNER JOIN servicegroup sg
-                            ON dsgr.sg_sg_id = sg.sg_id
-                        WHERE
-                            dt_id = :downtimeId;
-                    SQL;
+                case 'svcgrp':
+                    $query = "SELECT sg_sg_id as obj_id FROM downtime_servicegroup_relation WHERE dt_id = ";
                     break;
             }
-
-            $statement = $this->db->prepare($query);
-            $statement->bindValue(':downtimeId', $downtimeId, \PDO::PARAM_INT);
-            $statement->setFetchMode(\PDO::FETCH_ASSOC);
-            $statement->execute();
-
-            foreach ($statement as $record) {
-                $relations[$resourceType][] = [
-                    'id' => $record['resource_id'],
-                    'activated' => $record['activated']
-                ];
+            $res = $this->db->query($query . $id);
+            while ($row = $res->fetchRow()) {
+                $list[$type][] = $row['obj_id'];
             }
-
-            $statement->closeCursor();
+            $res->closeCursor();
         }
 
-        return $relations;
+        return $list;
     }
 
-    /**
-     * Returns all downtimes configured for enabled hosts
-     *
-     * @return array
-     */
-    public function getForEnabledHosts()
+    public function getHostDowntimes()
     {
-        $downtimes = [];
+        $hostDowntimes = array();
 
-        $request = <<<'SQL'
-            SELECT dt.dt_id,
-                dt.dt_activate,
-                dtp.dtp_start_time,
-                dtp.dtp_end_time,
-                dtp.dtp_day_of_week,
-                dtp.dtp_month_cycle,
-                dtp.dtp_day_of_month,
-                dtp.dtp_fixed,
-                dtp.dtp_duration,
-                h.host_id,
-                h.host_name,
-                NULL as service_id,
-                NULL as service_description
-            FROM downtime_period dtp,
-                downtime dt,
-                downtime_host_relation dtr,
-                host h
-            WHERE dtp.dt_id = dtr.dt_id
-                AND dtp.dt_id = dt.dt_id
-                AND dtr.host_host_id = h.host_id
-                AND h.host_activate = '1'
-        SQL;
+        $query = 'SELECT dt.dt_id, dt.dt_activate, dtp.dtp_start_time, dtp.dtp_end_time, dtp.dtp_day_of_week, '
+            . 'dtp.dtp_month_cycle, dtp.dtp_day_of_month, dtp.dtp_fixed, dtp.dtp_duration, '
+            . 'h.host_id, h.host_name, NULL as service_id, NULL as service_description '
+            . 'FROM downtime_period dtp, downtime dt, '
+            . 'downtime_host_relation dtr, host h '
+            . 'WHERE dtp.dt_id = dtr.dt_id AND dtp.dt_id = dt.dt_id '
+            . 'AND dtr.host_host_id = h.host_id';
 
-        $statement = $this->db->query($request);
-
-        while ($record = $statement->fetch(\PDO::FETCH_ASSOC)) {
-            $downtimes[] = $record;
+        try {
+            $res = $this->db->query($query);
+            while ($row = $res->fetchRow()) {
+                $hostDowntimes[] = $row;
+            }
+        } catch (\PDOException $e) {
+            // Nothing to do
         }
 
-        return $downtimes;
+        return $hostDowntimes;
     }
 
-    /**
-     * Returns all downtimes configured for enabled services
-     *
-     * @return array
-     */
-    public function getForEnabledServices()
+    public function getServiceDowntimes()
     {
-        $downtimes = [];
+        $serviceDowntimes = array();
 
-        $request = <<<'SQL'
-            SELECT dt.dt_id,
-                dt.dt_activate,
-                dtp.dtp_start_time,
-                dtp.dtp_end_time,
-                dtp.dtp_day_of_week,
-                dtp.dtp_month_cycle,
-                dtp.dtp_day_of_month,
-                dtp.dtp_fixed,
-                dtp.dtp_duration,
-                h.host_id,
-                h.host_name,
-                s.service_id,
-                s.service_description
-            FROM downtime_period dtp,
-                downtime dt,
-                downtime_service_relation dtr,
-                service s,
-                host h,
-                host_service_relation hsr
-            WHERE dtp.dt_id = dtr.dt_id
-                AND dtp.dt_id = dt.dt_id
-                AND dtr.service_service_id = s.service_id
-                AND hsr.service_service_id = s.service_id
-                AND hsr.host_host_id = h.host_id
-                AND h.host_id = dtr.host_host_id
-                AND s.service_activate = '1'
-            UNION
-                SELECT dt.dt_id,
-                    dt.dt_activate,
-                    dtp.dtp_start_time,
-                    dtp.dtp_end_time,
-                    dtp.dtp_day_of_week,
-                    dtp.dtp_month_cycle,
-                    dtp.dtp_day_of_month,
-                    dtp.dtp_fixed,
-                    dtp.dtp_duration,
-                    s.service_description as obj_name,
-                    dtr.service_service_id as obj_id,
-                    h.host_name as host_name,
-                    h.host_id
-                FROM downtime_period dtp,
-                    downtime dt,
-                    downtime_service_relation dtr,
-                    service s,
-                    host h,
-                    hostgroup_relation hgr,
-                    host_service_relation hsr
-                WHERE
-                    dtp.dt_id = dtr.dt_id
-                    AND dtp.dt_id = dt.dt_id
-                    AND dtr.host_host_id = h.host_id
-                    AND hsr.hostgroup_hg_id = hgr.hostgroup_hg_id
-                    AND hgr.host_host_id = h.host_id
-                    AND s.service_id = hsr.service_service_id
-                    AND dtr.service_service_id = s.service_id
-                    AND h.host_activate = '1';
-        SQL;
+        $query = 'SELECT dt.dt_id, dt.dt_activate, dtp.dtp_start_time, dtp.dtp_end_time, dtp.dtp_day_of_week, '
+            . 'dtp.dtp_month_cycle, dtp.dtp_day_of_month, dtp.dtp_fixed, dtp.dtp_duration, '
+            . 'h.host_id, h.host_name, s.service_id, s.service_description '
+            . 'FROM downtime_period dtp, downtime dt, downtime_service_relation dtr, '
+            . 'service s, host h, host_service_relation hsr '
+            . 'WHERE dtp.dt_id = dtr.dt_id '
+            . 'AND dtp.dt_id = dt.dt_id '
+            . 'AND dtr.service_service_id = s.service_id '
+            . 'AND hsr.service_service_id = s.service_id '
+            . 'AND hsr.host_host_id = h.host_id '
+            . 'AND h.host_id = dtr.host_host_id '
+            . 'UNION '
+            . 'SELECT dt.dt_id, dt.dt_activate, dtp.dtp_start_time, dtp.dtp_end_time, '
+            . 'dtp.dtp_day_of_week, dtp.dtp_month_cycle, dtp.dtp_day_of_month, dtp.dtp_fixed, '
+            . 'dtp.dtp_duration, s.service_description as obj_name, '
+            . 'dtr.service_service_id as obj_id, h.host_name as host_name, h.host_id '
+            . 'FROM downtime_period dtp, downtime dt, downtime_service_relation dtr, service s, '
+            . 'host h, hostgroup_relation hgr, host_service_relation hsr '
+            . 'WHERE '
+            . 'dtp.dt_id = dtr.dt_id '
+            . 'AND dtp.dt_id = dt.dt_id '
+            . 'AND dtr.host_host_id = h.host_id '
+            . 'AND hsr.hostgroup_hg_id = hgr.hostgroup_hg_id '
+            . 'AND hgr.host_host_id = h.host_id '
+            . 'AND s.service_id = hsr.service_service_id '
+            . 'AND dtr.service_service_id = s.service_id';
 
-        $statement = $this->db->query($request);
-
-        while ($record = $statement->fetch(\PDO::FETCH_ASSOC)) {
-            $downtimes[] = $record;
+        try {
+            $res = $this->db->query($query);
+            while ($row = $res->fetchRow()) {
+                $serviceDowntimes[] = $row;
+            }
+        } catch (\PDOException $e) {
+            // Nothind to do
         }
 
-        return $downtimes;
+        return $serviceDowntimes;
     }
 
-    /**
-     * Returns all downtimes configured for enabled hostgroups
-     *
-     * @return array
-     */
-    public function getForEnabledHostgroups()
+    public function getHostgroupDowntimes()
     {
-        $downtimes = [];
+        $hostgroupDowntimes = array();
 
-        $request = <<<'SQL'
-            SELECT dt.dt_id,
-                dt.dt_activate,
-                dtp.dtp_start_time,
-                dtp.dtp_end_time,
-                dtp.dtp_day_of_week,
-                dtp.dtp_month_cycle,
-                dtp.dtp_day_of_month,
-                dtp.dtp_fixed,
-                dtp.dtp_duration,
-                h.host_id,
-                h.host_name,
-                NULL as service_id,
-                NULL as service_description
-            FROM downtime_period dtp,
-                downtime dt,
-                downtime_hostgroup_relation dhr,
-                host h,
-                hostgroup_relation hgr,
-                hostgroup hg
-            WHERE dtp.dt_id = dhr.dt_id
-                AND dtp.dt_id = dt.dt_id
-                AND dhr.hg_hg_id = hgr.hostgroup_hg_id
-                AND hgr.host_host_id = h.host_id
-                AND hgr.hostgroup_hg_id = hg.hg_id
-                AND hg.hg_activate = '1';
-        SQL;
+        $query = 'SELECT dt.dt_id, dt.dt_activate, dtp.dtp_start_time, dtp.dtp_end_time, dtp.dtp_day_of_week, '
+            . 'dtp.dtp_month_cycle, dtp.dtp_day_of_month, dtp.dtp_fixed, dtp.dtp_duration, '
+            . 'h.host_id, h.host_name, NULL as service_id, NULL as service_description '
+            . 'FROM downtime_period dtp, downtime dt, '
+            . 'downtime_hostgroup_relation dhr, '
+            . 'host h, hostgroup_relation hgr '
+            . 'WHERE dtp.dt_id = dhr.dt_id '
+            . 'AND dtp.dt_id = dt.dt_id '
+            . 'AND dhr.hg_hg_id = hgr.hostgroup_hg_id '
+            . 'AND hgr.host_host_id = h.host_id ';
 
-        $statement = $this->db->query($request);
-
-        while ($record = $statement->fetch(\PDO::FETCH_ASSOC)) {
-            $downtimes[] = $record;
+        try {
+            $res = $this->db->query($query);
+            while ($row = $res->fetchRow()) {
+                $hostgroupDowntimes[] = $row;
+            }
+        } catch (\PDOException $e) {
+            // Nothind to do
         }
 
-        return $downtimes;
+        return $hostgroupDowntimes;
     }
 
-    public function getForEnabledServicegroups()
+    public function getServicegroupDowntimes()
     {
-        $downtimes = [];
+        $servicegroupDowntimes = array();
 
-        $request = <<<'SQL'
-            SELECT dt.dt_id,
-                dt.dt_activate,
-                dtp.dtp_start_time,
-                dtp.dtp_end_time,
-                dtp.dtp_day_of_week,
-                dtp.dtp_month_cycle,
-                dtp.dtp_day_of_month,
-                dtp.dtp_fixed,
-                dtp.dtp_duration,
-                h.host_id,
-                h.host_name,
-                s.service_id,
-                s.service_description
-            FROM downtime_period dtp,
-                downtime dt,
-                downtime_servicegroup_relation dtr,
-                servicegroup_relation sgr,
-                service s,
-                host h,
-                servicegroup sg
-            WHERE dtp.dt_id = dtr.dt_id
-                AND dtp.dt_id = dt.dt_id
-                AND dtr.sg_sg_id = sgr.servicegroup_sg_id
-                AND sgr.host_host_id = h.host_id
-                AND sgr.service_service_id = s.service_id
-                AND sgr.servicegroup_sg_id = sg.sg_id
-                AND sg.sg_activate = '1'
-            UNION DISTINCT
-                SELECT dt.dt_id,
-                    dt.dt_activate,
-                    dtp.dtp_start_time,
-                    dtp.dtp_end_time,
-                    dtp.dtp_day_of_week,
-                    dtp.dtp_month_cycle,
-                    dtp.dtp_day_of_month,
-                    dtp.dtp_fixed,
-                    dtp.dtp_duration,
-                    h.host_id,
-                    h.host_name,
-                    s.service_id,
-                    s.service_description
-                FROM downtime_period dtp,
-                    downtime dt,
-                    downtime_servicegroup_relation dtr,
-                    host_service_relation hsr,
-                    hostgroup_relation hgr,
-                    service s,
-                    host h,
-                    servicegroup_relation sgr
-                WHERE dtp.dt_id = dtr.dt_id
-                    AND dtp.dt_id = dt.dt_id
-                    AND dtr.sg_sg_id = sgr.servicegroup_sg_id
-                    AND sgr.hostgroup_hg_id IS NOT NULL
-                    AND sgr.hostgroup_hg_id = hsr.hostgroup_hg_id
-                    AND hsr.service_service_id = s.service_id
-                    AND hsr.hostgroup_hg_id = hgr.hostgroup_hg_id
-                    AND hgr.host_host_id = h.host_id;
-        SQL;
+        $query = 'SELECT dt.dt_id, dt.dt_activate, dtp.dtp_start_time, dtp.dtp_end_time, dtp.dtp_day_of_week, '
+            . 'dtp.dtp_month_cycle, dtp.dtp_day_of_month, dtp.dtp_fixed, dtp.dtp_duration, '
+            . 'h.host_id, h.host_name, s.service_id, s.service_description '
+            . 'FROM downtime_period dtp, downtime dt, '
+            . 'downtime_servicegroup_relation dtr, servicegroup_relation sgr, '
+            . 'service s, host h '
+            . 'WHERE dtp.dt_id = dtr.dt_id '
+            . 'AND dtp.dt_id = dt.dt_id '
+            . 'AND dtr.sg_sg_id = sgr.servicegroup_sg_id '
+            . 'AND sgr.host_host_id = h.host_id '
+            . 'AND sgr.service_service_id = s.service_id '
+            . 'UNION DISTINCT '
+            . 'SELECT dt.dt_id, dt.dt_activate, dtp.dtp_start_time, dtp.dtp_end_time, dtp.dtp_day_of_week, '
+            . 'dtp.dtp_month_cycle, dtp.dtp_day_of_month, dtp.dtp_fixed, dtp.dtp_duration, '
+            . 'h.host_id, h.host_name, s.service_id, s.service_description '
+            . 'FROM downtime_period dtp, downtime dt, '
+            . 'downtime_servicegroup_relation dtr, '
+            . 'host_service_relation hsr, hostgroup_relation hgr, '
+            . 'service s, host h, servicegroup_relation sgr '
+            . 'WHERE dtp.dt_id = dtr.dt_id '
+            . 'AND dtp.dt_id = dt.dt_id '
+            . 'AND dtr.sg_sg_id = sgr.servicegroup_sg_id '
+            . 'AND sgr.hostgroup_hg_id IS NOT NULL '
+            . 'AND sgr.hostgroup_hg_id = hsr.hostgroup_hg_id '
+            . 'AND hsr.service_service_id = s.service_id '
+            . 'AND hsr.hostgroup_hg_id = hgr.hostgroup_hg_id '
+            . 'AND hgr.host_host_id = h.host_id ';
 
-        $statement = $this->db->query($request);
-
-        while ($record = $statement->fetch(\PDO::FETCH_ASSOC)) {
-            $downtimes[] = $record;
+        try {
+            $res = $this->db->query($query);
+            while ($row = $res->fetchRow()) {
+                $servicegroupDowntimes[] = $row;
+            }
+        } catch (\PDOException $e) {
+            // Nothing to do
         }
 
-        return $downtimes;
+        return $servicegroupDowntimes;
     }
 
     /**
@@ -591,17 +436,17 @@ class CentreonDowntime
      *
      * @return array All downtimes
      */
-    public function getForEnabledResources()
+    public function getDowntime()
     {
-        if (! is_null($this->downtimes)) {
+        if (!is_null($this->downtimes)) {
             return $this->downtimes;
         }
 
         $downtimes = array_merge(
-            $this->getForEnabledHosts(),
-            $this->getForEnabledServices(),
-            $this->getForEnabledServicegroups(),
-            $this->getForEnabledHostgroups()
+            $this->getHostDowntimes(),
+            $this->getServiceDowntimes(),
+            $this->getHostgroupDowntimes(),
+            $this->getServicegroupDowntimes()
         );
 
         /* Remove duplicate downtimes */
@@ -628,18 +473,72 @@ class CentreonDowntime
         }
         foreach ($ids as $id) {
             if (isset($nb[$id])) {
-                $query = "SELECT dt_id, dt_name, dt_description, dt_activate FROM downtime WHERE dt_id = " . $id;
+                $query = "SELECT dt_name, dt_description, dt_activate FROM downtime WHERE dt_id = " . $id;
                 try {
                     $res = $this->db->query($query);
                 } catch (\PDOException $e) {
                     return;
                 }
-                $row = $res->fetch();
+                $row = $res->fetchRow();
+                $dt_name = $row['dt_name'];
+                $dt_desc = $row['dt_description'];
+                $dt_activate = $row['dt_activate'];
                 $index = $i = 1;
                 while ($i <= $nb[$id]) {
-                    if (!$this->downtimeExists($row['dt_name'] . '_' . $index)) {
-                        $row['index'] = $index;
-                        $this->duplicateDowntime($row);
+                    /* Find the index for duplicate name */
+                    $query = "SELECT COUNT(*) as nb FROM downtime WHERE dt_name = '" . $dt_name . "_" . $index . "'";
+                    $res = $this->db->query($query);
+                    $row = $res->fetchRow();
+                    if ($row["nb"] == 0) {
+                        /* Insert the new downtime */
+                        $rq = "INSERT INTO downtime (dt_name, dt_description, dt_activate)
+								VALUES ('" . $dt_name . "_" . $index . "', '" . $dt_desc . "', '" . $dt_activate . "')";
+                        try {
+                            $res = $this->db->query($rq);
+                        } catch (\PDOException $e) {
+                            return;
+                        }
+                        /* Get the new downtime id */
+                        $query = "SELECT dt_id FROM downtime WHERE dt_name = '" . $dt_name . "_" . $index . "'";
+                        $res = $this->db->query($query);
+                        $row = $res->fetchRow();
+                        $res->closeCursor();
+                        $id_new = $row['dt_id'];
+                        /* Copy the periods for new downtime */
+                        $query = "INSERT INTO downtime_period (dt_id, dtp_start_time, dtp_end_time,
+                            dtp_day_of_week, dtp_month_cycle, dtp_day_of_month, dtp_fixed, dtp_duration,
+                            dtp_activate)
+                            SELECT " . $id_new . ", dtp_start_time, dtp_end_time, dtp_day_of_week, dtp_month_cycle,
+                            dtp_day_of_month, dtp_fixed, dtp_duration, dtp_activate
+                            FROM downtime_period WHERE dt_id = " . $id;
+                        $res = $this->db->query($query);
+
+                        /*
+                         * Duplicate Relations for hosts
+                         */
+                        $this->db->query("INSERT INTO downtime_host_relation (dt_id, host_host_id)
+                            SELECT $id_new, host_host_id FROM downtime_host_relation WHERE dt_id = '$id'");
+
+                        /*
+                         * Duplicate Relations for hostgroups
+                         */
+                        $this->db->query("INSERT INTO downtime_hostgroup_relation (dt_id, hg_hg_id)
+                            SELECT $id_new, hg_hg_id FROM downtime_hostgroup_relation WHERE dt_id = '$id'");
+
+                        /*
+                         * Duplicate Relations for services
+                         */
+                        $this->db->query("INSERT INTO downtime_service_relation
+                            (dt_id, host_host_id, service_service_id)
+                            SELECT $id_new, host_host_id, service_service_id
+                                FROM downtime_service_relation WHERE dt_id = '$id'");
+
+                        /*
+                         * Duplicate Relations for servicegroups
+                         */
+                        $this->db->query("INSERT INTO downtime_servicegroup_relation (dt_id, sg_sg_id)
+                            SELECT $id_new, sg_sg_id FROM downtime_servicegroup_relation WHERE dt_id = '$id'");
+
                         $i++;
                     }
                     $index++;
@@ -679,7 +578,7 @@ class CentreonDowntime
         if ($error || $res->rowCount() == 0) {
             return false;
         }
-        $row = $res->fetch();
+        $row = $res->fetchRow();
         return $row['dt_id'];
     }
 
@@ -786,7 +685,7 @@ class CentreonDowntime
                     $infos['duration'] . ")";
                 break;
         }
-        $this->db->query($query);
+        $res = $this->db->query($query);
     }
 
     /**

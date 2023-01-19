@@ -1,8 +1,7 @@
 <?php
-
-/*
- * Copyright 2005-2020 Centreon
- * Centreon is developed by : Julien Mathis and Romain Le Merlus under
+/**
+ * Copyright 2005-2011 MERETHIS
+ * Centreon is developped by : Julien Mathis and Romain Le Merlus under
  * GPL Licence 2.0.
  *
  * This program is free software; you can redistribute it and/or modify it under
@@ -20,11 +19,11 @@
  * combined work based on this program. Thus, the terms and conditions of the GNU
  * General Public License cover the whole combination.
  *
- * As a special exception, the copyright holders of this program give Centreon
+ * As a special exception, the copyright holders of this program give MERETHIS
  * permission to link this program with independent modules to produce an executable,
  * regardless of the license terms of these independent modules, and to copy and
- * distribute the resulting executable under terms of Centreon choice, provided that
- * Centreon also meet, for each linked independent module, the terms  and conditions
+ * distribute the resulting executable under terms of MERETHIS choice, provided that
+ * MERETHIS also meet, for each linked independent module, the terms  and conditions
  * of the license of that module. An independent module is a module which is not
  * derived from this program. If you modify this program, you may extend this
  * exception to your version of the program, but you are not obliged to do so. If you
@@ -34,7 +33,12 @@
  *
  */
 
+/**
+ * Include config file
+ */
+
 require_once "../../require.php";
+
 require_once $centreon_path . 'bootstrap.php';
 require_once $centreon_path . 'www/class/centreon.class.php';
 require_once $centreon_path . 'www/class/centreonSession.class.php';
@@ -55,14 +59,13 @@ if (!isset($_GET['service'])) {
 list($hostId, $serviceId) = explode('-', $_GET['service']);
 
 $db = $dependencyInjector['realtime_db'];
-$query = "SELECT `id` FROM index_data WHERE host_id = :hostId AND service_id = :serviceId LIMIT 1";
-$stmt = $db->prepare($query);
-$stmt->bindValue(':hostId', $hostId, \PDO::PARAM_INT);
-$stmt->bindValue(':serviceId', $serviceId, \PDO::PARAM_INT);
-$stmt->execute();
-
-if ($stmt->rowCount()) {
-    $row = $stmt->fetch();
+$res = $db->query("SELECT `id`
+				   FROM index_data
+    			   WHERE host_id = ".$db->escape($hostId)."
+    			   AND service_id = ".$db->escape($serviceId)."
+    			   LIMIT 1");
+if ($res->rowCount()) {
+    $row = $res->fetchRow();
     $index = $row["id"];
 } else {
     $index = 0;
@@ -72,16 +75,16 @@ if ($stmt->rowCount()) {
  * Create XML Request Objects
  */
 
-$iIdUser = (int)$_GET['user'];
+$iIdUser = $_GET['user'];
 
 $obj = new CentreonGraph($iIdUser, $index, 0, 1);
 
-require_once $centreon_path . "www/include/common/common-Func.php";
+require_once $centreon_path."www/include/common/common-Func.php";
 
 /**
  * Set arguments from GET
  */
-(int)$graphPeriod = $_GET['tp'] ?? (60 * 60 * 48);
+$graphPeriod = isset($_GET['tp']) ? $_GET['tp'] : (60*60*48);
 $obj->setRRDOption("start", (time() - $graphPeriod));
 $obj->setRRDOption("end", time());
 
@@ -94,16 +97,17 @@ $obj->setTemplate();
 $obj->init();
 
 /*
- * Set colors
+ * Set colors 
  */
 
-$obj->setColor("CANVAS", "#FFFFFF");
-$obj->setColor("BACK", "#FFFFFF");
-$obj->setColor("SHADEA", "#FFFFFF");
-$obj->setColor("SHADEB", "#FFFFFF");
+$obj->setColor("CANVAS","#FFFFFF");
+$obj->setColor("BACK","#FFFFFF");
+$obj->setColor("SHADEA","#FFFFFF");
+$obj->setColor("SHADEB","#FFFFFF");
 
 if (isset($_GET['width']) && $_GET['width']) {
-    $obj->setRRDOption("width", (int)($_GET['width'] - 110));
+   $obj->setRRDOption("width", ($_GET['width'] - 110));
+   //$obj->setRRDOption("width", 400);
 }
 
 /**
@@ -117,7 +121,7 @@ $obj->initCurveList();
 $obj->setOption("comment_time");
 
 /**
- * Create Legend
+ * Create Legende
  */
 $obj->createLegend();
 

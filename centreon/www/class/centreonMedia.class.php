@@ -180,7 +180,7 @@ class CentreonMedia
     {
         $mediaDirectory = $this->getMediaDirectory();
 
-        $fullPath = $mediaDirectory . '/' . basename($dirname);
+        $fullPath = $mediaDirectory . '/' . $dirname;
 
         // Create directory and nested folder structure
         if (! is_dir($fullPath)) {

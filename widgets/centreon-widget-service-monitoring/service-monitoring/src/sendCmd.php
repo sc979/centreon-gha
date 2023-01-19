@@ -1,7 +1,6 @@
 <?php
-
-/*
- * Copyright 2005-2020 Centreon
+/**
+ * Copyright 2005-2019 Centreon
  * Centreon is developed by : Julien Mathis and Romain Le Merlus under
  * GPL Licence 2.0.
  *
@@ -20,11 +19,11 @@
  * combined work based on this program. Thus, the terms and conditions of the GNU
  * General Public License cover the whole combination.
  *
- * As a special exception, the copyright holders of this program give Centreon
+ * As a special exception, the copyright holders of this program give CENTREON
  * permission to link this program with independent modules to produce an executable,
  * regardless of the license terms of these independent modules, and to copy and
- * distribute the resulting executable under terms of Centreon choice, provided that
- * Centreon also meet, for each linked independent module, the terms  and conditions
+ * distribute the resulting executable under terms of CENTREON choice, provided that
+ * CENTREON also meet, for each linked independent module, the terms  and conditions
  * of the license of that module. An independent module is a module which is not
  * derived from this program. If you modify this program, you may extend this
  * exception to your version of the program, but you are not obliged to do so. If you
@@ -47,8 +46,7 @@ require_once $centreon_path . 'www/class/centreonUtils.class.php';
 session_start();
 
 try {
-    if (
-        !isset($_SESSION['centreon']) ||
+    if (!isset($_SESSION['centreon']) ||
         !isset($_POST['cmdType']) ||
         !isset($_POST['selection']) ||
         !isset($_POST['author']) ||
@@ -60,9 +58,8 @@ try {
     if (CentreonSession::checkSession(session_id(), $db) == 0) {
         throw new Exception('Invalid session');
     }
-    $type = filter_input(INPUT_POST, 'cmdType', FILTER_SANITIZE_STRING, ['options' => ['default' => '']]);
-    $cmd = filter_input(INPUT_POST, 'cmd', FILTER_VALIDATE_INT, ['options' => ['default' => 0]]);
-
+    $type = $_POST['cmdType'];
+    $cmd = $_POST['cmd'];
     $centreon = $_SESSION['centreon'];
     $selections = explode(',', $_POST['selection']);
     $oreon = $centreon;
@@ -70,13 +67,13 @@ try {
 
     $hostObj = new CentreonHost($db);
     $svcObj = new CentreonService($db);
-    $command = '';
-    $author = filter_input(INPUT_POST, 'author', FILTER_SANITIZE_STRING, ['options' => ['default' => '']]);
-    $comment = '';
+    $command = "";
+    $author = $_POST['author'];
+    $comment = "";
     if (isset($_POST['comment'])) {
-        $comment = filter_input(INPUT_POST, 'comment', FILTER_SANITIZE_STRING, ['options' => ['default' => '']]);
+        $comment = $_POST['comment'];
     }
-    if ($type === 'ack') {
+    if ($type == 'ack') {
         $persistent = 0;
         $sticky = 0;
         $notify = 0;
@@ -92,10 +89,10 @@ try {
         $command = "ACKNOWLEDGE_HOST_PROBLEM;%s;$sticky;$notify;$persistent;$author;$comment";
         $commandSvc = "ACKNOWLEDGE_SVC_PROBLEM;%s;%s;$sticky;$notify;$persistent;$author;$comment";
         if (isset($_POST['forcecheck'])) {
-            $forceCmd = "SCHEDULE_FORCED_HOST_CHECK;%s;" . time();
-            $forceCmdSvc = "SCHEDULE_FORCED_SVC_CHECK;%s;%s;" . time();
+            $forceCmd = "SCHEDULE_FORCED_HOST_CHECK;%s;".time();
+            $forceCmdSvc = "SCHEDULE_FORCED_SVC_CHECK;%s;%s;".time();
         }
-    } elseif ($type === 'downtime') {
+    } elseif ($type == 'downtime') {
         $fixed = 0;
         if (isset($_POST['fixed'])) {
             $fixed = 1;
@@ -127,7 +124,7 @@ try {
     } else {
         throw new Exception('Unknown command');
     }
-    if ($command !== '') {
+    if ($command != "") {
         $externalCommandMethod = 'set_process_command';
         if (method_exists($externalCmd, 'setProcessCommand')) {
             $externalCommandMethod = 'setProcessCommand';
@@ -137,13 +134,13 @@ try {
             if (count($tmp) != 2) {
                 throw new Exception('Incorrect id format');
             }
-            $hostId = filter_var($tmp[0], FILTER_VALIDATE_INT) ?: 0;
-            $svcId = filter_var($tmp[1], FILTER_VALIDATE_INT) ?: 0;
-            if ($hostId !== 0 && $svcId !== 0) {
+            $hostId = $tmp[0];
+            $svcId = $tmp[1];
+            if ($hostId != 0 && $svcId != 0) {
                 $hostname = $hostObj->getHostName($hostId);
                 $svcDesc = $svcObj->getServiceDesc($svcId);
                 $pollerId = $hostObj->getHostPollerId($hostId);
-                if ($cmd === 70 || $cmd === 74) {
+                if ($cmd == 70 || $cmd == 74) {
                     $externalCmd->$externalCommandMethod(sprintf($commandSvc, $hostname, $svcDesc), $pollerId);
                     if (isset($forceCmdSvc)) {
                         $externalCmd->$externalCommandMethod(sprintf($forceCmdSvc, $hostname, $svcDesc), $pollerId);

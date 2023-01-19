@@ -41,43 +41,24 @@ if (!isset($centreon)) {
 include("./include/common/autoNumLimit.php");
 
 $SearchTool = null;
+$search = '';
 $queryValues = array();
-$search = null;
-if (isset($_POST['searchCurve'])) {
+if (isset($_POST['searchCurve']) && $_POST['searchCurve']) {
     $search = $_POST['searchCurve'];
-    $centreon->historySearch[$url] = $search;
-} elseif (isset($_GET['search'])) {
-    $search = $_GET['search'];
-    $centreon->historySearch[$url] = $search;
-} elseif (isset($centreon->historySearch[$url])) {
-    $search = $centreon->historySearch[$url];
-}
-
-if ($search != null) {
     $SearchTool = " WHERE name LIKE :search";
     $queryValues['search'] = '%' . $search . '%';
-    $ClWh1 = "AND host_id IS NULL";
-    $ClWh2 = "AND gct.host_id = h.host_id";
-} else {
-    $ClWh1 = "WHERE host_id IS NULL";
-    $ClWh2 = "WHERE gct.host_id = h.host_id";
 }
-$query = "( SELECT SQL_CALC_FOUND_ROWS compo_id, NULL as host_name, host_id, service_id, name, ds_stack, ds_order, " .
-    "ds_name, ds_color_line, ds_color_area, ds_filled, ds_legend, default_tpl1, ds_tickness, ds_transparency " .
-    "FROM giv_components_template $SearchTool $ClWh1 ) UNION ( SELECT compo_id, host_name, gct.host_id, " .
-    "gct.service_id, name, ds_stack, ds_order, ds_name, ds_color_line, ds_color_area, ds_filled, ds_legend, " .
-    "default_tpl1, ds_tickness, ds_transparency FROM giv_components_template AS gct, host AS h $SearchTool $ClWh2 ) " .
-    "ORDER BY host_name, name LIMIT " . $num * $limit . ", " . $limit;
-$stmt = $pearDB->prepare($query);
 
+$stmt = $pearDB->prepare("SELECT COUNT(*) FROM giv_components_template" . $SearchTool);
 foreach ($queryValues as $key => $value) {
     $stmt->bindValue(':' . $key, $value, \PDO::PARAM_STR);
 }
 $stmt->execute();
-$rows = $pearDB->query("SELECT FOUND_ROWS()")->fetchColumn();
+
+$tmp = $stmt->fetch();
+$rows = $tmp["COUNT(*)"];
 
 include("./include/common/checkPagination.php");
-
 
 /*
  * Smarty template Init
@@ -98,6 +79,20 @@ $tpl->assign("headerMenu_tickness", _("Thickness"));
 $tpl->assign("headerMenu_fill", _("Filling"));
 $tpl->assign("headerMenu_options", _("Options"));
 
+if ($SearchTool != null) {
+    $ClWh1 = "AND host_id IS NULL";
+    $ClWh2 = "AND gct.host_id = h.host_id";
+} else {
+    $ClWh1 = "WHERE host_id IS NULL";
+    $ClWh2 = "WHERE gct.host_id = h.host_id";
+}
+$query = "( SELECT compo_id, NULL as host_name, host_id, service_id, name, ds_stack, ds_order, ds_name, " .
+    "ds_color_line, ds_color_area, ds_filled, ds_legend, default_tpl1, ds_tickness, ds_transparency " .
+    "FROM giv_components_template $SearchTool $ClWh1 ) UNION ( SELECT compo_id, host_name, gct.host_id, " .
+    "gct.service_id, name, ds_stack, ds_order, ds_name, ds_color_line, ds_color_area, ds_filled, ds_legend, " .
+    "default_tpl1, ds_tickness, ds_transparency FROM giv_components_template AS gct, host AS h $SearchTool $ClWh2 ) " .
+    "ORDER BY host_name, name LIMIT " . $num * $limit . ", " . $limit;
+$DBRESULT = $pearDB->query($query);
 
 $form = new HTML_QuickFormCustom('select_form', 'POST', "?p=" . $p);
 
@@ -113,7 +108,7 @@ $form->addElement('submit', 'Search', _("Search"), $attrBtnSuccess);
 //Fill a tab with a multidimensionnal Array we put in $tpl
 $yesOrNo = array(null => _("No"), 0 => _("No"), 1 => _("Yes"));
 $elemArr = array();
-for ($i = 0; $compo = $stmt->fetch(); $i++) {
+for ($i = 0; $compo = $DBRESULT->fetchRow(); $i++) {
     $selectedElements = $form->addElement('checkbox', "select[" . $compo['compo_id'] . "]");
     $moptions = "&nbsp;<input onKeypress=\"if(event.keyCode > 31 && (event.keyCode < 45 || event.keyCode > 57)) " .
         "event.returnValue = false; if(event.which > 31 && (event.which < 45 || event.which > 57)) " .

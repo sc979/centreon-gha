@@ -1,7 +1,6 @@
 <?php
-
-/*
- * Copyright 2005-2020 Centreon
+/**
+ * Copyright 2005-2014 MERETHIS
  * Centreon is developed by : Julien Mathis and Romain Le Merlus under
  * GPL Licence 2.0.
  *
@@ -20,11 +19,11 @@
  * combined work based on this program. Thus, the terms and conditions of the GNU
  * General Public License cover the whole combination.
  *
- * As a special exception, the copyright holders of this program give Centreon
+ * As a special exception, the copyright holders of this program give MERETHIS
  * permission to link this program with independent modules to produce an executable,
  * regardless of the license terms of these independent modules, and to copy and
- * distribute the resulting executable under terms of Centreon choice, provided that
- * Centreon also meet, for each linked independent module, the terms  and conditions
+ * distribute the resulting executable under terms of MERETHIS choice, provided that
+ * MERETHIS also meet, for each linked independent module, the terms  and conditions
  * of the license of that module. An independent module is a module which is not
  * derived from this program. If you modify this program, you may extend this
  * exception to your version of the program, but you are not obliged to do so. If you
@@ -33,11 +32,10 @@
  * For more information : contact@centreon.com
  *
  */
-
 header('Content-type: application/csv');
 header('Content-Disposition: attachment; filename="services-monitoring.csv"');
 
-require_once '../../require.php';
+require_once "../../require.php";
 require_once $centreon_path . 'bootstrap.php';
 require_once $centreon_path . 'www/class/centreon.class.php';
 require_once $centreon_path . 'www/class/centreonSession.class.php';
@@ -47,12 +45,12 @@ require_once $centreon_path . 'www/class/centreonUtils.class.php';
 require_once $centreon_path . 'www/class/centreonACL.class.php';
 require_once $centreon_path . 'www/class/centreonHost.class.php';
 require_once $centreon_path . 'www/class/centreonService.class.php';
+
 require_once $centreon_path . 'www/class/centreonMedia.class.php';
 require_once $centreon_path . 'www/class/centreonCriticality.class.php';
 
 session_start();
-if (!isset($_SESSION['centreon'], $_GET['widgetId'], $_GET['list'])) {
-    // As the header is already defined, if one of these parameters is missing, an empty CSV is exported
+if (!isset($_SESSION['centreon']) || !isset($_REQUEST['widgetId'])) {
     exit();
 }
 
@@ -61,63 +59,21 @@ if (CentreonSession::checkSession(session_id(), $db) == 0) {
     exit();
 }
 
+// Init Smarty
+$template = new Smarty();
+$template = initSmartyTplForPopup(
+    $centreon_path . "www/widgets/service-monitoring/src/",
+    $template,
+    "./",
+    $centreon_path
+);
+
 /* Init Objects */
 $criticality = new CentreonCriticality($db);
 $media = new CentreonMedia($db);
 
 $centreon = $_SESSION['centreon'];
-$widgetId = filter_input(INPUT_GET, 'widgetId', FILTER_VALIDATE_INT, ['options' => ['default' => 0]]);
-
-/**
- * Sanitize and concatenate selected resources for the query
- */
-// Check returned combinations
-if (false !== strpos($_GET['list'], ',')) {
-    $resources = explode(',', $_GET['list']);
-} else {
-    $resources[] = $_GET['list'];
-}
-// Check combinations consistency and split them in an [hostId, serviceId] array
-$exportList = [];
-foreach ($resources as $resource) {
-    if (false !== strpos($resource, '\;')) {
-        continue;
-    } else {
-        $exportList[] = explode(';', $resource);
-    }
-}
-$mainQueryParameters = [];
-$hostQuery = '';
-$serviceQuery = '';
-// Prepare the query concatenation and the bind values
-$firstResult = true;
-foreach ($exportList as $key => $Id) {
-    if (
-        !isset($exportList[$key][1]) ||
-        0 === (int)$exportList[$key][0] ||
-        0 === (int)$exportList[$key][1]
-    ) {
-        // skip missing serviceId in combinations or non consistent data
-        continue;
-    }
-    if (false === $firstResult) {
-        $hostQuery .= ', ';
-        $serviceQuery .= ', ';
-    }
-    $hostQuery .= ':' . $key . 'hId' . $exportList[$key][0];
-    $mainQueryParameters[] = [
-        'parameter' => ':' . $key . 'hId' . $exportList[$key][0],
-        'value' => (int)$exportList[$key][0],
-        'type' => \PDO::PARAM_INT
-    ];
-    $serviceQuery .= ':' . $key . 'sId' . $exportList[$key][1];
-    $mainQueryParameters[] = [
-        'parameter' => ':' . $key . 'sId' . $exportList[$key][1],
-        'value' => (int)$exportList[$key][1],
-        'type' => \PDO::PARAM_INT
-    ];
-    $firstResult = false;
-}
+$widgetId = $_REQUEST['widgetId'];
 
 $dbb = $dependencyInjector['realtime_db'];
 $widgetObj = new CentreonWidget($centreon, $db);
@@ -132,40 +88,42 @@ $stateLabels = array(
     4 => "Pending"
 );
 
+$mainQueryParameters = [];
+
 // Build Query
 $query = "SELECT SQL_CALC_FOUND_ROWS h.host_id,
-    h.name as hostname,
-    h.alias as hostalias,
+		h.name as hostname,
+		h.alias as hostalias,
     s.latency,
     s.execution_time,
-    h.state as h_state,
-    s.service_id,
-    s.description,
-    s.state as s_state,
+		h.state as h_state,
+		s.service_id,
+		s.description,
+		s.state as s_state,
     h.state_type as state_type,
-    s.last_hard_state,
-    s.output,
-    s.scheduled_downtime_depth as s_scheduled_downtime_depth,
-    s.acknowledged as s_acknowledged,
-    s.notify as s_notify,
-    s.active_checks as s_active_checks,
-    s.passive_checks as s_passive_checks,
-    h.scheduled_downtime_depth as h_scheduled_downtime_depth,
-    h.acknowledged as h_acknowledged,
-    h.notify as h_notify,
-    h.active_checks as h_active_checks,
-    h.passive_checks as h_passive_checks,
-    s.last_check,
-    s.last_state_change,
-    s.last_hard_state_change,
-    s.check_attempt,
-    s.max_check_attempts,
-    h.action_url as h_action_url,
-    h.notes_url as h_notes_url,
-    s.action_url as s_action_url,
-    s.notes_url as s_notes_url,
-    cv2.value AS criticality_id,
-    cv.value AS criticality_level
+		s.last_hard_state,
+		s.output,
+		s.scheduled_downtime_depth as s_scheduled_downtime_depth,
+		s.acknowledged as s_acknowledged,
+		s.notify as s_notify,
+		s.active_checks as s_active_checks,
+		s.passive_checks as s_passive_checks,
+		h.scheduled_downtime_depth as h_scheduled_downtime_depth,
+		h.acknowledged as h_acknowledged,
+		h.notify as h_notify,
+		h.active_checks as h_active_checks,
+		h.passive_checks as h_passive_checks,
+		s.last_check,
+		s.last_state_change,
+		s.last_hard_state_change,
+		s.check_attempt,
+		s.max_check_attempts,
+		h.action_url as h_action_url,
+		h.notes_url as h_notes_url,
+		s.action_url as s_action_url,
+		s.notes_url as s_notes_url,
+		cv2.value AS criticality_id,
+		cv.value AS criticality_level
     FROM hosts h, services s
     LEFT JOIN customvariables cv ON (
         s.service_id = cv.service_id AND s.host_id = cv.host_id AND cv.name = 'CRITICALITY_LEVEL'
@@ -180,11 +138,6 @@ $query .= " WHERE s.host_id = h.host_id
     AND h.name NOT LIKE '_Module_%'
     AND s.enabled = 1
     AND h.enabled = 1 ";
-
-if (false === $firstResult) {
-    $query .= " AND h.host_id IN ($hostQuery) AND s.service_id IN ($serviceQuery) ";
-}
-
 if (isset($preferences['host_name_search']) && $preferences['host_name_search'] != "") {
     $tab = explode(" ", $preferences['host_name_search']);
     $op = $tab[0];
@@ -195,7 +148,7 @@ if (isset($preferences['host_name_search']) && $preferences['host_name_search'] 
         $mainQueryParameters[] = [
             'parameter' => ':host_name',
             'value' => $search,
-            'type' => \PDO::PARAM_STR
+            'type' => PDO::PARAM_STR
         ];
         $hostNameCondition = 'h.name ' . CentreonUtils::operandToMysqlFormat($op) . ' :host_name ';
         $query = CentreonUtils::conditionBuilder($query, $hostNameCondition);
@@ -211,7 +164,7 @@ if (isset($preferences['service_description_search']) && $preferences['service_d
         $mainQueryParameters[] = [
             'parameter' => ':service_description',
             'value' => $search,
-            'type' => \PDO::PARAM_STR
+            'type' => PDO::PARAM_STR
         ];
         $serviceDescriptionCondition = 's.description ' .
             CentreonUtils::operandToMysqlFormat($op) . ' :service_description ';
@@ -285,14 +238,14 @@ if (isset($preferences['hostgroup']) && $preferences['hostgroup']) {
         $mainQueryParameters[] = [
             'parameter' => ':id_' . $result,
             'value' => (int)$result,
-            'type' => \PDO::PARAM_INT
+            'type' => PDO::PARAM_INT
         ];
     }
     $query = CentreonUtils::conditionBuilder(
         $query,
         " s.host_id IN (
             SELECT host_host_id
-            FROM `" . $conf_centreon['db'] . "`.hostgroup_relation
+            FROM " . $conf_centreon['db'] . ".hostgroup_relation
             WHERE hostgroup_hg_id IN (" . $queryHG . ")
         )"
     );
@@ -308,7 +261,7 @@ if (isset($preferences['servicegroup']) && $preferences['servicegroup']) {
         $mainQueryParameters[] = [
             'parameter' => ':id_' . $resultSG,
             'value' => (int)$resultSG,
-            'type' => \PDO::PARAM_INT
+            'type' => PDO::PARAM_INT
         ];
     }
     $query = CentreonUtils::conditionBuilder(
@@ -320,15 +273,15 @@ if (isset($preferences['servicegroup']) && $preferences['servicegroup']) {
         )"
     );
 }
-if (!empty($preferences['criticality_filter'])) {
+if  (!empty($preferences['criticality_filter'])) {
     $tab = explode(',', $preferences['criticality_filter']);
     $labels = [];
     foreach ($tab as $p) {
-        $labels[] = ":id_" . $p;
+        $labels[] = ":id_". $p;
         $mainQueryParameters[] = [
             'parameter' => ':id_' . $p,
-            'value' => (int)$p,
-            'type' => \PDO::PARAM_INT
+            'value' => (int) $p,
+            'type' => PDO::PARAM_INT
         ];
     }
     $query = CentreonUtils::conditionBuilder(
@@ -346,10 +299,10 @@ if (isset($preferences['output_search']) && $preferences['output_search'] != "")
         $mainQueryParameters[] = [
             'parameter' => ':service_output',
             'value' => $search,
-            'type' => \PDO::PARAM_STR
+            'type' => PDO::PARAM_STR
         ];
         $serviceOutputCondition = ' s.output ' . CentreonUtils::operandToMysqlFormat($op) . ' :service_output ';
-        $query = CentreonUtils::conditionBuilder($query, $serviceOutputCondition);
+        $query = CentreonUtils::conditionBuilder($query, $servicegroupCondition);
     }
 }
 if (!$centreon->user->admin) {
@@ -359,12 +312,12 @@ if (!$centreon->user->admin) {
         AND acl.service_id = s.service_id
         AND acl.group_id IN (" . $groupList . ")";
 }
-$orderby = " hostname ASC , description ASC";
+$orderby = "hostname ASC , description ASC";
 if (isset($preferences['order_by']) && $preferences['order_by'] != "") {
     $orderby = $preferences['order_by'];
 }
 
-$query .= " ORDER BY " . $orderby;
+$query .= "ORDER BY " . $orderby;
 
 $res = $dbb->prepare($query);
 
@@ -378,8 +331,8 @@ $res->execute();
 
 $nbRows = $res->rowCount();
 $data = array();
-$outputLength = $preferences['output_length'] ?? 50;
-$commentLength = $preferences['comment_length'] ?? 50;
+$outputLength = $preferences['output_length'] ? $preferences['output_length'] : 50;
+$commentLength = $preferences['comment_length'] ? $preferences['comment_length'] : 50;
 
 $hostObj = new CentreonHost($db);
 $svcObj = new CentreonService($db);
@@ -414,8 +367,8 @@ while ($row = $res->fetch()) {
             AND service_id = :service_id
             ORDER BY entry_time DESC LIMIT 1'
         );
-        $res2->bindValue(':host_id', $row['host_id'], \PDO::PARAM_INT);
-        $res2->bindValue(':service_id', $row['service_id'], \PDO::PARAM_INT);
+        $res2->bindValue(':host_id', $row['host_id'], PDO::PARAM_INT);
+        $res2->bindValue(':service_id', $row['service_id'], PDO::PARAM_INT);
         $res2->execute();
 
         $data[$row['host_id'] . "_" . $row['service_id']]['comment'] = '-';
@@ -432,98 +385,8 @@ while ($row = $res->fetch()) {
     );
 }
 
-$autoRefresh = (isset($preferences['refresh_interval']) && (int)$preferences['refresh_interval'] > 0)
-    ? (int)$preferences['refresh_interval']
-    : 30;
-
-$lines = [];
-foreach ($data as $lineData) {
-    $lines[0] = [];
-    $line = [];
-
-    // Export if set in preferences : severities
-    if ($preferences['display_severities']) {
-        $lines[0][] = 'Severity';
-        $line[] = $lineData['criticality_id'];
-    }
-    // Export if set in preferences : name column
-    if ($preferences['display_host_name'] && $preferences['display_host_alias']) {
-        $lines[0][] = 'Host Name - Host Alias';
-        $line[] = $lineData['hostname'] . ' - ' . $lineData['hostalias'];
-    } elseif ($preferences['display_host_alias']) {
-        $lines[0][] = 'Host Alias';
-        $line[] = $lineData['hostalias'];
-    } else {
-        $lines[0][] = 'Host Name';
-        $line[] = $lineData['hostname'];
-    }
-    // Export if set in preferences : service description
-    if ($preferences['display_svc_description']) {
-        $lines[0][] = 'Description';
-        $line[] = $lineData['description'];
-    }
-    // Export if set in preferences : output
-    if ($preferences['display_output']) {
-        $lines[0][] = 'Output';
-        $line[] = $lineData['output'];
-    }
-    // Export if set in preferences : status
-    if ($preferences['display_status']) {
-        $lines[0][] = 'Status';
-        $line[] = $lineData['s_state'];
-    }
-    // Export if set in preferences : last check
-    if ($preferences['display_last_check']) {
-        $lines[0][] = 'Last Check';
-        $line[] = $lineData['last_check'];
-    }
-    // Export if set in preferences : duration
-    if ($preferences['display_duration']) {
-        $lines[0][] = 'Duration';
-        $line[] = $lineData['last_state_change'];
-    }
-    // Export if set in preferences : hard state duration
-    if ($preferences['display_hard_state_duration']) {
-        $lines[0][] = 'Hard State Duration';
-        $line[] = $lineData['last_hard_state_change'];
-    }
-    // Export if set in preferences : Tries
-    if ($preferences['display_tries']) {
-        $lines[0][] = 'Attempt';
-        $line[] = $lineData['check_attempt'];
-    }
-    // Export if set in preferences : Last comment
-    if ($preferences['display_last_comment']) {
-        $lines[0][] = 'Last comment';
-        $line[] = $lineData['comment'];
-    }
-
-    // Export if set in preferences : Latency
-    if ($preferences['display_latency']) {
-        $lines[0][] = 'Latency';
-        $line[] = $lineData['latency'];
-    }
-    // Export if set in preferences : Latency
-    if ($preferences['display_execution_time']) {
-        $lines[0][] = 'Execution time';
-        $line[] = $lineData['execution_time'];
-    }
-
-    $lines[] = $line;
-}
-
-// open raw memory as file so no temp files needed, you might run out of memory though
-$memoryFile = fopen('php://memory', 'w');
-// loop over the input array
-foreach ($lines as $line) {
-    // generate csv lines from the inner arrays
-    fputcsv($memoryFile, $line, ';');
-}
-// reset the file pointer to the start of the file
-fseek($memoryFile, 0);
-// tell the browser it's going to be a csv file
-header('Content-Type: application/csv');
-// tell the browser we want to save it instead of displaying it
-header('Content-Disposition: attachment; filename="services-monitoring.csv";');
-// make php send the generated csv lines to the browser
-fpassthru($memoryFile);
+$autoRefresh = $preferences['refresh_interval'];
+$template->assign('widgetId', $widgetId);
+$template->assign('preferences', $preferences);
+$template->assign('data', $data);
+$template->display('export.ihtml');

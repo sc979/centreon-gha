@@ -146,7 +146,9 @@ try {
     $statement->bindValue(':limit', $limit, PDO::PARAM_INT);
     $statement->execute();
 
-    $rows = $pearDB->query("SELECT FOUND_ROWS()")->fetchColumn();
+    $res = $pearDB->query("SELECT FOUND_ROWS() as numrows");
+    $row = $res->fetchRow();
+    $rows = $row['numrows'];
 
     $selection = [];
     while ($data = $statement->fetch(PDO::FETCH_ASSOC)) {
@@ -237,6 +239,7 @@ try {
 
     // Apply a template definition
     $tpl->display($modules_path . "templates/display.ihtml");
+
 } catch (\Exception $e) {
     $tpl->assign('errorMsg', $e->getMessage());
     $tpl->display($modules_path . "templates/NoWiki.tpl");
