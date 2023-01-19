@@ -1,8 +1,7 @@
 <?php
-
 /*
- * Copyright 2005-2019 Centreon
- * Centreon is developed by : Julien Mathis and Romain Le Merlus under
+ * Copyright 2005-2015 Centreon
+ * Centreon is developped by : Julien Mathis and Romain Le Merlus under
  * GPL Licence 2.0.
  *
  * This program is free software; you can redistribute it and/or modify it under
@@ -42,21 +41,10 @@ include_once "./include/common/autoNumLimit.php";
 
 $SearchSTR = "";
 
-$search = \HtmlAnalyzer::sanitizeAndRemoveTags(
-    $_POST['searchCG'] ?? $_GET['searchCG'] ?? null
-);
-
-if (isset($_POST['searchCG']) || isset($_GET['searchCG'])) {
-    //saving filters values
-    $centreon->historySearch[$url] = array();
-    $centreon->historySearch[$url]['search'] = $search;
-} else {
-    //restoring saved values
-    $search = $centreon->historySearch[$url]['search'] ?? null;
-}
-
 $clauses = array();
-if ($search) {
+$search = '';
+if (isset($_POST['searchCG']) && $_POST['searchCG']) {
+    $search = $_POST['searchCG'];
     $clauses = array(
         'cg_name' => array('LIKE', '%' . $search . '%'),
         'cg_alias' => array('OR', 'LIKE', '%' . $search . '%')
@@ -80,7 +68,7 @@ include_once "./include/common/checkPagination.php";
 $tpl = new Smarty();
 $tpl = initSmartyTpl($path, $tpl);
 
-// Access level
+/* Access level */
 ($centreon->user->access->page($p) == 1) ? $lvl_access = 'w' : $lvl_access = 'r';
 $tpl->assign('mode_access', $lvl_access);
 
@@ -90,7 +78,9 @@ $tpl->assign("headerMenu_contacts", _("Contacts"));
 $tpl->assign("headerMenu_status", _("Status"));
 $tpl->assign("headerMenu_options", _("Options"));
 
-//Contactgroup list
+/*
+ * Contactgroup list
+ */
 $aclOptions['pages'] = $num * $limit . ", " . $limit;
 $cgs = $acl->getContactGroupAclConf($aclOptions);
 
@@ -98,30 +88,24 @@ $search = tidySearchKey($search, $advanced_search);
 
 $form = new HTML_QuickFormCustom('select_form', 'POST', "?p=" . $p);
 
-// Different style between each lines
+/*
+ * Different style between each lines
+ */
 $style = "one";
 
-$attrBtnSuccess = array(
-    "class" => "btc bt_success",
-    "onClick" => "window.history.replaceState('', '', '?p=" . $p . "');"
-);
-$form->addElement('submit', 'Search', _("Search"), $attrBtnSuccess);
-
-// Fill a tab with a multidimensional Array we put in $tpl
+/*
+ * Fill a tab with a mutlidimensionnal Array we put in $tpl
+ */
 $elemArr = array();
-$centreonToken = createCSRFToken();
-
 foreach ($cgs as $cg) {
     $selectedElements = $form->addElement('checkbox', "select[" . $cg['cg_id'] . "]");
     if ($cg["cg_activate"]) {
         $moptions = "<a href='main.php?p=" . $p . "&cg_id=" . $cg['cg_id'] . "&o=u&limit=" . $limit . "&num=" . $num .
-            "&search=" . $search . "&centreon_token=" . $centreonToken .
-            "'><img src='img/icons/disabled.png' class='ico-14 margin_right' border='0' " .
+            "&search=" . $search . "'><img src='img/icons/disabled.png' class='ico-14 margin_right' border='0' " .
             "alt='" . _("Disabled") . "'></a>&nbsp;&nbsp;";
     } else {
         $moptions = "<a href='main.php?p=" . $p . "&cg_id=" . $cg['cg_id'] . "&o=s&limit=" . $limit .
-            "&num=" . $num . "&search=" . $search . "&centreon_token=" . $centreonToken .
-            "'><img src='img/icons/enabled.png' class='ico-14 margin_right'" .
+            "&num=" . $num . "&search=" . $search . "'><img src='img/icons/enabled.png' class='ico-14 margin_right'" .
             "border='0' alt='" . _("Enabled") . "'></a>&nbsp;&nbsp;";
     }
     $moptions .= "&nbsp;&nbsp;";
@@ -129,19 +113,21 @@ foreach ($cgs as $cg) {
         "event.returnValue = false; if(event.which > 31 && (event.which < 45 || event.which > 57)) return false;" .
         "\" maxlength=\"3\" size=\"3\" value='1' style=\"margin-bottom:0px;\" name='dupNbr[" . $cg['cg_id'] . "]' />";
 
-    //Contacts
+    /*
+	 * Contacts
+	 */
     $ctNbr = array();
-    $rq = "SELECT COUNT(DISTINCT contact_contact_id) AS `nbr`
-           FROM `contactgroup_contact_relation` `cgr`
+    $rq = "SELECT COUNT(DISTINCT contact_contact_id) AS `nbr` 
+           FROM `contactgroup_contact_relation` `cgr` 
            WHERE `cgr`.`contactgroup_cg_id` = '" . $cg['cg_id'] . "' " .
         $acl->queryBuilder('AND', 'contact_contact_id', $contactstring);
-    $dbResult2 = $pearDB->query($rq);
-    $ctNbr = $dbResult2->fetch();
+    $DBRESULT2 = $pearDB->query($rq);
+    $ctNbr = $DBRESULT2->fetchRow();
     $elemArr[] = array(
         "MenuClass" => "list_" . $style,
         "RowMenu_select" => $selectedElements->toHtml(),
         "RowMenu_name" => $cg["cg_name"],
-        "RowMenu_link" => "main.php?p=" . $p . "&o=c&cg_id=" . $cg['cg_id'],
+        "RowMenu_link" => "?p=" . $p . "&o=c&cg_id=" . $cg['cg_id'],
         "RowMenu_desc" => $cg["cg_alias"],
         "RowMenu_contacts" => $ctNbr["nbr"],
         "RowMenu_status" => $cg["cg_activate"] ? _("Enabled") : _("Disabled"),
@@ -152,16 +138,15 @@ foreach ($cgs as $cg) {
 }
 $tpl->assign("elemArr", $elemArr);
 
-// Different messages we put in the template
-$tpl->assign(
-    'msg',
-    array(
-        "addL" => "main.php?p=" . $p . "&o=a",
-        "addT" => _("Add"),
-        "delConfirm" => _("Do you confirm the deletion ?"),
-        "view_notif" => _("View contact group notifications")
-    )
-);
+/*
+ * Different messages we put in the template
+ */
+$tpl->assign('msg', array(
+    "addL" => "?p=" . $p . "&o=a",
+    "addT" => _("Add"),
+    "delConfirm" => _("Do you confirm the deletion ?"),
+    "view_notif" => _("View contact group notifications")
+));
 
 foreach (array('o1', 'o2') as $option) {
     $attrs1 = array(
@@ -191,15 +176,18 @@ foreach (array('o1', 'o2') as $option) {
     $o1->setValue(null);
     $o1->setSelected(null);
 }
+
 ?>
-<script type="text/javascript">
-    function setO(_i) {
-        document.forms['form'].elements['o'].value = _i;
-    }
-</script>
+    <script type="text/javascript">
+        function setO(_i) {
+            document.forms['form'].elements['o'].value = _i;
+        }
+    </script>
 <?php
 
-// Apply a template definition
+/*
+ * Apply a template definition
+ */
 $renderer = new HTML_QuickForm_Renderer_ArraySmarty($tpl);
 $form->accept($renderer);
 $tpl->assign('form', $renderer->toArray());
