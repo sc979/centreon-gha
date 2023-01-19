@@ -1,7 +1,6 @@
 <?php
-
-/*
- * Copyright 2005-2021 Centreon
+/**
+ * Copyright 2005-2019 Centreon
  * Centreon is developed by : Julien Mathis and Romain Le Merlus under
  * GPL Licence 2.0.
  *
@@ -41,39 +40,6 @@ $dataPEND = array();
 $dataList = array();
 $db = new CentreonDB("centstorage");
 
-/**
- * true: URIs will correspond to deprecated pages
- * false: URIs will correspond to new page (Resource Status)
- */
-$useDeprecatedPages = $centreon->user->doesShowDeprecatedPages();
-
-$buildHostUri = function (array $states, array $statuses) use ($resourceController, $buildParameter) {
-    return $resourceController->buildListingUri(
-        [
-            'filter' => json_encode(
-                [
-                    'criterias' => [
-                        'resourceTypes' => [$buildParameter('host', 'Host')],
-                        'states' => $states,
-                        'statuses' => $statuses,
-                    ]
-                ]
-            )
-        ]
-    );
-};
-
-$pendingStatus = $buildParameter('PENDING', 'Pending');
-$upStatus = $buildParameter('UP', 'Up');
-$downStatus = $buildParameter('DOWN', 'Down');
-$unreachableStatus = $buildParameter('UNREACHABLE', 'Unreachable');
-
-$unhandledState = $buildParameter('unhandled_problems', 'Unhandled');
-$acknowledgedState = $buildParameter('acknowledged', 'Acknowledged');
-$inDowntimeState = $buildParameter('in_downtime', 'In downtime');
-
-$deprecatedHostListingUri = '../../main.php?p=20202&search=&o=h_';
-
 // query for DOWN status
 $res = $db->query(
     "SELECT
@@ -109,25 +75,6 @@ $res = $db->query(
 );
 while ($row = $res->fetch()) {
     $row['un'] = $row['status'] - ($row['ack'] + $row['down']);
-
-    $deprecatedDownHostListingUri = $deprecatedHostListingUri . 'down';
-
-    $row['listing_uri'] = $useDeprecatedPages
-        ? $deprecatedDownHostListingUri
-        : $buildHostUri([], [$downStatus]);
-
-    $row['listing_ack_uri'] = $useDeprecatedPages
-        ? $deprecatedDownHostListingUri
-        : $buildHostUri([$acknowledgedState], [$downStatus]);
-
-    $row['listing_downtime_uri'] = $useDeprecatedPages
-        ? $deprecatedDownHostListingUri
-        : $buildHostUri([$inDowntimeState], [$downStatus]);
-
-    $row['listing_unhandled_uri'] = $useDeprecatedPages
-        ? $deprecatedDownHostListingUri
-        : $buildHostUri([$unhandledState], [$downStatus]);
-
     $dataDO[] = $row;
 }
 
@@ -166,25 +113,6 @@ $res = $db->query(
 );
 while ($row = $res->fetch()) {
     $row['un'] = $row['status'] - ($row['ack'] + $row['down']);
-
-    $deprecatedUnreachableHostListingUri = $deprecatedHostListingUri . 'unreachable';
-
-    $row['listing_uri'] = $useDeprecatedPages
-        ? $deprecatedUnreachableHostListingUri
-        : $buildHostUri([], [$unreachableStatus]);
-
-    $row['listing_ack_uri'] = $useDeprecatedPages
-        ? $deprecatedUnreachableHostListingUri
-        : $buildHostUri([$acknowledgedState], [$unreachableStatus]);
-
-    $row['listing_downtime_uri'] = $useDeprecatedPages
-        ? $deprecatedUnreachableHostListingUri
-        : $buildHostUri([$inDowntimeState], [$unreachableStatus]);
-
-    $row['listing_unhandled_uri'] = $useDeprecatedPages
-        ? $deprecatedUnreachableHostListingUri
-        : $buildHostUri([$unhandledState], [$unreachableStatus]);
-
     $dataUN[] = $row;
 }
 
@@ -208,10 +136,6 @@ $res = $db->query(
     ) . ";"
 );
 while ($row = $res->fetch()) {
-    $row['listing_uri'] = $useDeprecatedPages
-        ? $deprecatedHostListingUri . 'up'
-        : $buildHostUri([], [$upStatus]);
-
     $dataUP[] = $row;
 }
 
@@ -234,19 +158,14 @@ $res = $db->query(
         ) x ON x.host_id = h.host_id AND x.service_id IS NULL" : ""
     ) . ";"
 );
+$res = $db->query($queryPEND);
 while ($row = $res->fetch()) {
-    $row['listing_uri'] = $useDeprecatedPages
-        ? $deprecatedHostListingUri . 'pending'
-        : $buildHostUri([], [$pendingStatus]);
-
     $dataPEND[] = $row;
 }
 
 $numLine = 1;
 
-$autoRefresh = (isset($preferences['refresh_interval']) && (int)$preferences['refresh_interval'] > 0)
-    ? (int)$preferences['refresh_interval']
-    : 30;
+$autoRefresh = $preferences['autoRefresh'];
 
 $template->assign('preferences', $preferences);
 $template->assign('widgetId', $widgetId);

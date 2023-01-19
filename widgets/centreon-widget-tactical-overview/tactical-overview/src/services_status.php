@@ -1,12 +1,11 @@
 <?php
-
-/*
- * Copyright 2005-2021 Centreon
- * Centreon is developed by : Julien Mathis and Romain Le Merlus under
+/**
+ * Copyright 2005-2019 Centreon
+ * Centreon is developed by : Julien Mathis AND Romain Le Merlus under
  * GPL Licence 2.0.
  *
  * This program is free software; you can redistribute it and/or modify it under
- * the terms of the GNU General Public License as published by the Free Software
+ * the terms of the GNU General Public License AS published by the Free Software
  * Foundation ; either version 2 of the License.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -17,14 +16,14 @@
  * this program; if not, see <http://www.gnu.org/licenses>.
  *
  * Linking this program statically or dynamically with other modules is making a
- * combined work based on this program. Thus, the terms and conditions of the GNU
+ * combined work based on this program. Thus, the terms AND conditions of the GNU
  * General Public License cover the whole combination.
  *
  * As a special exception, the copyright holders of this program give Centreon
  * permission to link this program with independent modules to produce an executable,
- * regardless of the license terms of these independent modules, and to copy and
+ * regardless of the license terms of these independent modules, AND to copy and
  * distribute the resulting executable under terms of Centreon choice, provided that
- * Centreon also meet, for each linked independent module, the terms  and conditions
+ * Centreon also meet, for each linked independent module, the terms  AND conditions
  * of the license of that module. An independent module is a module which is not
  * derived from this program. If you modify this program, you may extend this
  * exception to your version of the program, but you are not obliged to do so. If you
@@ -40,40 +39,6 @@ $dataOK = array();
 $dataUNK = array();
 $dataPEND = array();
 $db = new CentreonDB("centstorage");
-
-/**
- * true: URIs will correspond to deprecated pages
- * false: URIs will correspond to new page (Resource Status)
- */
-$useDeprecatedPages = $centreon->user->doesShowDeprecatedPages();
-
-$buildServiceUri = function (array $states, array $statuses) use ($resourceController, $buildParameter) {
-    return $resourceController->buildListingUri(
-        [
-            'filter' => json_encode(
-                [
-                    'criterias' => [
-                        'resourceTypes' => [$buildParameter('service', 'Service')],
-                        'states' => $states,
-                        'statuses' => $statuses,
-                    ],
-                ]
-            )
-        ]
-    );
-};
-
-$pendingStatus = $buildParameter('PENDING', 'Pending');
-$okStatus = $buildParameter('OK', 'Ok');
-$warningStatus = $buildParameter('WARNING', 'Warning');
-$criticalStatus = $buildParameter('CRITICAL', 'Critical');
-$unknownStatus = $buildParameter('UNKNOWN', 'Unknown');
-
-$unhandledState = $buildParameter('unhandled_problems', 'Unhandled');
-$acknowledgedState = $buildParameter('acknowledged', 'Acknowledged');
-$inDowntimeState = $buildParameter('in_downtime', 'In downtime');
-
-$deprecatedServiceListingUri = '../../main.php?p=20201&search=';
 
 // query for CRITICAL state
 $res = $db->query(
@@ -127,27 +92,10 @@ $res = $db->query(
             FROM centreon_acl AS acl
             WHERE acl.group_id IN (" . ($grouplistStr != "" ? $grouplistStr : 0) . ")
             GROUP BY host_id,service_id
-            ) x ON x.host_id = h.host_id AND x.service_id = s.service_id"
-        : ""
+        ) x ON x.host_id = h.host_id AND x.service_id = s.service_id" : ""
     ) . ";"
 );
 while ($row = $res->fetch()) {
-    $row['listing_uri'] = $useDeprecatedPages
-        ? $deprecatedServiceListingUri . '&statusFilter=critical&o=svc'
-        : $buildServiceUri([], [$criticalStatus]);
-
-    $row['listing_ack_uri'] = $useDeprecatedPages
-        ? $deprecatedServiceListingUri . '&statusFilter=critical&statusService=svcpb'
-        : $buildServiceUri([$acknowledgedState], [$criticalStatus]);
-
-    $row['listing_downtime_uri'] = $useDeprecatedPages
-        ? $deprecatedServiceListingUri . '&statusFilter=critical&statusService=svcpb'
-        : $buildServiceUri([$inDowntimeState], [$criticalStatus]);
-
-    $row['listing_unhandled_uri'] = $useDeprecatedPages
-        ? $deprecatedServiceListingUri . '&statusFilter=critical&statusService=svc_unhandled'
-        : $buildServiceUri([$unhandledState], [$criticalStatus]);
-
     $dataCRI[] = $row;
 }
 
@@ -203,27 +151,10 @@ $res = $db->query(
             FROM centreon_acl AS acl
             WHERE acl.group_id IN (" . ($grouplistStr != "" ? $grouplistStr : 0) . ")
             GROUP BY host_id,service_id
-            ) x ON x.host_id = h.host_id AND x.service_id = s.service_id"
-        : ""
+        ) x ON x.host_id = h.host_id AND x.service_id = s.service_id" : ""
     ) . ";"
 );
 while ($row = $res->fetch()) {
-    $row['listing_uri'] = $useDeprecatedPages
-        ? $deprecatedServiceListingUri . '&statusFilter=warning&o=svc'
-        : $buildServiceUri([], [$warningStatus]);
-
-    $row['listing_ack_uri'] = $useDeprecatedPages
-        ? $deprecatedServiceListingUri . '&statusFilter=warning&statusService=svcpb'
-        : $buildServiceUri([$acknowledgedState], [$warningStatus]);
-
-    $row['listing_downtime_uri'] = $useDeprecatedPages
-        ? $deprecatedServiceListingUri . '&statusFilter=warning&statusService=svcpb'
-        : $buildServiceUri([$inDowntimeState], [$warningStatus]);
-
-    $row['listing_unhandled_uri'] = $useDeprecatedPages
-        ? $deprecatedServiceListingUri . '&statusFilter=critical&statusService=svc_unhandled'
-        : $buildServiceUri([$unhandledState], [$warningStatus]);
-
     $dataWA[] = $row;
 }
 
@@ -245,15 +176,10 @@ $res = $db->query(
             FROM centreon_acl AS acl
             WHERE acl.group_id IN (" . ($grouplistStr != "" ? $grouplistStr : 0) . ")
             GROUP BY host_id,service_id
-            ) x ON x.host_id = h.host_id AND x.service_id = s.service_id"
-        : ""
+        ) x ON x.host_id = h.host_id AND x.service_id = s.service_id" : ""
     ) . ";"
 );
 while ($row = $res->fetch()) {
-    $row['listing_uri'] = $useDeprecatedPages
-        ? $deprecatedServiceListingUri . '&statusFilter=ok&o=svc'
-        : $buildServiceUri([], [$okStatus]);
-
     $dataOK[] = $row;
 }
 
@@ -275,14 +201,9 @@ $res = $db->query(
             FROM centreon_acl AS acl
             WHERE acl.group_id IN (" . ($grouplistStr != "" ? $grouplistStr : 0) . ")
             GROUP BY host_id,service_id
-            ) x ON x.host_id = h.host_id AND x.service_id = s.service_id"
-        : "") . ";"
+        ) x ON x.host_id = h.host_id AND x.service_id = s.service_id" : "") . ";"
 );
 while ($row = $res->fetch()) {
-    $row['listing_uri'] = $useDeprecatedPages
-        ? $deprecatedServiceListingUri . '&statusFilter=pending&o=svc'
-        : $buildServiceUri([], [$pendingStatus]);
-
     $dataPEND[] = $row;
 }
 
@@ -338,36 +259,17 @@ $res = $db->query(
                 FROM centreon_acl AS acl
                 WHERE acl.group_id IN (" . ($grouplistStr != "" ? $grouplistStr : 0) . ")
                 GROUP BY host_id,service_id
-                ) x ON x.host_id = h.host_id AND x.service_id = s.service_id"
-            : ""
+            ) x ON x.host_id = h.host_id AND x.service_id = s.service_id" : ""
         ) . ";"
 );
 while ($row = $res->fetch()) {
-    $row['listing_uri'] = $useDeprecatedPages
-        ? $deprecatedServiceListingUri . '&statusFilter=unknown&o=svc'
-        : $buildServiceUri([], [$unknownStatus]);
-
-    $row['listing_ack_uri'] = $useDeprecatedPages
-        ? $deprecatedServiceListingUri . '&statusFilter=unknown&statusService=svcpb'
-        : $buildServiceUri([$acknowledgedState], [$unknownStatus]);
-
-    $row['listing_downtime_uri'] = $useDeprecatedPages
-        ? $deprecatedServiceListingUri . '&statusFilter=unknown&statusService=svcpb'
-        : $buildServiceUri([$inDowntimeState], [$unknownStatus]);
-
-    $row['listing_unhandled_uri'] = $useDeprecatedPages
-        ? $deprecatedServiceListingUri . '&statusFilter=unknown&statusService=svc_unhandled'
-        : $buildServiceUri([$unhandledState], [$unknownStatus]);
-
     $dataUNK[] = $row;
 }
 
 
 $numLine = 1;
 
-$autoRefresh = (isset($preferences['refresh_interval']) && (int)$preferences['refresh_interval'] > 0)
-    ? (int)$preferences['refresh_interval']
-    : 30;
+$autorefresh = $preferences['autoRefresh'];
 
 $template->assign('widgetId', $widgetId);
 $template->assign('autoRefresh', $autoRefresh);
@@ -376,4 +278,5 @@ $template->assign('dataOK', $dataOK);
 $template->assign('dataWA', $dataWA);
 $template->assign('dataCRI', $dataCRI);
 $template->assign('dataUNK', $dataUNK);
+
 $template->display('services_status.ihtml');
