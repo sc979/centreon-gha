@@ -2,6 +2,7 @@ name: Launch Veracode pipeline scan
 
 on:
   pull_request:
+    branches: [ "**", "!develop", "!master" ]
     types:
       - synchronize
       - opened
@@ -90,3 +91,33 @@ jobs:
           store_baseline_file_branch: "${{ env.BRANCH_NAME }}"
           create_baseline_from: standard
           baseline_file: "${{ env.REPORT_FILENAME }}"
+
+  veracode-sandbox-scan:
+    runs-on: ubuntu-latest
+    needs: build
+    name: sandbox-scan
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v3
+
+      - name: DEBUG - Check location
+        run: ls -la
+
+      - name: get archive
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.ZIP_NAME }}.zip
+
+      - name: Veracode Upload and Scan Action Step
+        uses: veracode/veracode-uploadandscan-action@master
+        id: upload_and_scan
+        with:
+          appname: 'sc979/centreon'
+          createprofile: true
+          sandboxname: "${{ github.head_ref }}_PR-${{ github.ref_name }}"
+          createsandbox: true
+          version: '23.04.beta-1'
+          filepath: ${{ env.ZIP_NAME }}.zip
+          vid: ${{ secrets.VERACODE_API_ID }}
+          vkey: ${{ secrets.VERACODE_API_KEY }}
+          scantimeout: 30
