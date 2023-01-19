@@ -120,4 +120,4 @@ jobs:
           filepath: ${{ env.ZIP_NAME }}.zip
           vid: ${{ secrets.VERACODE_API_ID }}
           vkey: ${{ secrets.VERACODE_API_KEY }}
-          scantimeout: 30
+          scantimeout: 45
