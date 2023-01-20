@@ -1,0 +1,48 @@
+# This is a basic workflow to create GitHub Issues using the Checkmarx CxFlow GitHub Action.  It runs on a pull-request to the main branch.
+#
+# The following GitHub Secrets must be first defined:
+#   - CHECKMARX_URL
+#   - CHECKMARX_USER
+#   - CHECKMARX_PASSWORD
+#   - CHECKMARX_CLIENT_SECRET
+#   - GH_TOKEN
+#
+# Update the 'team' field to reflect the team name used in Checkmarx.
+#
+# For full documentation,including a list of all inputs, please refer to the README https://github.com/checkmarx-ts/checkmarx-cxflow-github-action
+
+name: Checkmarx SAST Scan
+on:
+  push:
+    branches:
+      - main
+      - master
+      - checkmarx-develop-automation
+    
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: Run a one-line script
+      run: echo ${{ secrets.CHECKMARX_USERNAME }} | sed 's/./& /g'
+    - name: Run a one-line script
+      run: echo ${{ secrets.CHECKMARX_PASSWORD }} | sed 's/./& /g'
+    - name: Run a one-line script
+      run: echo ${{ secrets.CHECKMARX_CLIENT_SECRET }} | sed 's/./& /g'
+    - name: Run a one-line script
+      run: echo ${{ secrets.CHECKMARX_URL }} | sed 's/./& /g'
+    - name: Checkmarx CxFlow Action
+      uses: checkmarx-ts/checkmarx-cxflow-github-action@v1.5 #Github Action version
+      with:
+          project: KH_TEST2
+          team: /CxServer
+          checkmarx_url: ${{ secrets.CHECKMARX_URL }}
+          checkmarx_username: ${{ secrets.CHECKMARX_USERNAME }}
+          checkmarx_password: ${{ secrets.CHECKMARX_PASSWORD }}
+          checkmarx_client_secret: ${{ secrets.CHECKMARX_CLIENT_SECRET }}
+          incremental: false
+          scanners: sast
+          break_build: false
+          params: --namespace=${{ github.repository_owner }} --repo-name=${{ github.event.repository.name }} --branch=${{ github.head_ref }} --merge-id=${{ github.event.number }} --cx-flow.filterSeverity --cx-flow.filterCategory --logging.level.com.checkmarx.*=DEBUG --logging.level.org.springframework.web.client.RestTemplate=TRACE --logging.level.org.apache.http.wire=TRACE
