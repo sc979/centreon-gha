@@ -46,3 +46,11 @@ jobs:
           scanners: sast
           break_build: false
           params: --namespace=${{ github.repository_owner }} --repo-name=${{ github.event.repository.name }} --branch=${{ github.head_ref }} --merge-id=${{ github.event.number }} --cx-flow.filterSeverity --cx-flow.filterCategory --logging.level.com.checkmarx.*=DEBUG --logging.level.org.springframework.web.client.RestTemplate=TRACE --logging.level.org.apache.http.wire=TRACE
+
+    - name: DEBUG - Check location
+      run: ls -la
+
+    - name: Upload SARIF file
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: cx.sarif
