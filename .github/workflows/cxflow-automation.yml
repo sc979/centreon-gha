@@ -14,21 +14,11 @@
 name: CxFlow-GitHub-Pull-Request
 
 on:
-#  push:
-#    branches:
-#      - master
-#      - develop
-#      - checkmarx-develop-automation
-
   pull_request:
     types:
       - opened
       - reopened
       - synchronize
-#    branches:
-#      - master
-#      - develop
-#      - checkmarx-develop-automation
 
 env:
   DEFAULT_VALUE: '014DF517-39D1-4453-B7B3-9930C563627C'
