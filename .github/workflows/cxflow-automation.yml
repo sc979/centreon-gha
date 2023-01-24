@@ -1,3 +1,6 @@
+
+
+
 # This is a basic workflow to create GitHub Issues using the Checkmarx CxFlow GitHub Action.  It runs on a pull-request to the main branch.
 #
 # The following GitHub Secrets must be first defined:
@@ -70,7 +73,7 @@ jobs:
           checkmarx_password: ${{ secrets.CHECKMARX_PASSWORD }}
           checkmarx_client_secret: ${{ secrets.CHECKMARX_CLIENT_SECRET }}
           incremental: true
-          break_build: false
+          break_build: true
           scanners: sast
           bug_tracker: GITHUBPULL
           params: --namespace=${{ github.repository_owner }} --repo-name=${{ github.event.repository.name }} --branch=${{ github.head_ref }} --merge-id=${{ github.event.number }} --cx-flow.filterSeverity --cx-flow.filterCategory
