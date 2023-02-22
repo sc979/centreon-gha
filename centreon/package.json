@@ -119,7 +119,7 @@
     "html-react-parser": "^3.0.4",
     "i18next": "^22.0.4",
     "jotai": "1.9.2",
-    "jotai-suspense": "^0.1.0",
+    "jotai-suspense": "^0.2.0",
     "notistack": "^2.0.8",
     "numeral": "^2.0.6",
     "pluralize": "^8.0.0",
