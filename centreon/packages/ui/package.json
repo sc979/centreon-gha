@@ -51,7 +51,7 @@
     "@lexical/link": "0.8.0",
     "@lexical/react": "0.8.0",
     "@lexical/selection": "0.8.0",
-    "@lexical/utils": "0.8.0",
+    "@lexical/utils": "0.8.1",
     "anylogger": "^1.0.11",
     "humanize-duration": "^3.27.3",
     "lexical": "0.8.0",
