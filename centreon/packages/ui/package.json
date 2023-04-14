@@ -49,7 +49,7 @@
   },
   "dependencies": {
     "@lexical/link": "0.8.0",
-    "@lexical/react": "0.8.0",
+    "@lexical/react": "0.9.1",
     "@lexical/selection": "0.8.0",
     "@lexical/utils": "0.8.0",
     "anylogger": "^1.0.11",
