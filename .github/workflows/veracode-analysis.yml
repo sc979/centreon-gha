@@ -29,24 +29,7 @@ on:
 jobs:
   test_names:
     runs-on: ubuntu-22.04
-    steps:
-      - name: DEBUG - Github head ref
-        run: echo ${{ github.head_ref }} #TODO: to remove
-
-      - name: DEBUG - Github ref Name
-        run: echo ${{ github.ref_name }} #TODO: to remove
-
-      - name: DEBUG - Github base ref
-        run: echo ${{ github.base_ref }} #TODO: to remove
-
-      - name: DEBUG - Github run_id
-        run: echo ${{ github.run_id }} #TODO: to remove
-
-      - name: DEBUG - Hello world
-        run: echo Hello world from $GITHUB_BASE_REF #TODO: to remove
-
-      - name: Get current time
-        run: echo "$(date +'%Y-%m-%d %H:%M:%S')"
+    uses: ./.github/workflows/test_branch_name.yml
 
   build:
     name: Binary preparation
