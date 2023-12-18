@@ -1,0 +1,7 @@
+# test branch names
+
+on:
+  workflow_call:
+
+jobs:
+  names:
