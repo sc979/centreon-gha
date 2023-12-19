@@ -23,6 +23,9 @@ on:
       dockerize_matrix:
         description: "matrix to use for dockerize job"
         value: ${{ jobs.get-version.outputs.dockerize_matrix }}
+permissions:
+  contents: read
+
 jobs:
   get-version:
     runs-on: ubuntu-22.04
