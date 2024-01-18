@@ -53,6 +53,10 @@ jobs:
     outputs:
       collections: ${{ steps.set_collections.outputs.collections }}
     steps:
+      - uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895 # v2.6.1
+          with:
+            egress-policy: audit
+
       - name: Checkout Repository
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
@@ -79,6 +83,10 @@ jobs:
         working-directory: centreon/tests/rest_api
 
     steps:
+      - uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895 # v2.6.1
+          with:
+            egress-policy: audit
+
       - name: Checkout Repository
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
@@ -291,6 +299,10 @@ jobs:
       CENTREON_URL: ${{ inputs.centreon_url }}
       CENTREON_IMAGE: ${{ inputs.centreon_image }}
     steps:
+      - uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895 # v2.6.1
+          with:
+            egress-policy: audit
+
       - name: Checkout Repository
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 

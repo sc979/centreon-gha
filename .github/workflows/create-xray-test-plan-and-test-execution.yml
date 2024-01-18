@@ -66,6 +66,10 @@ jobs:
       test_execution_id_bullseye: ${{ steps.get_test_execution_id.outputs.test_execution_id_bullseye }}
 
     steps:
+      - uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895 # v2.6.1
+          with:
+            egress-policy: audit
+
       - name: Generate Xray Token
         id: generate_xray_token
         run: |
