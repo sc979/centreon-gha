@@ -34,8 +34,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895 # v2.6.1
-          with:
-            egress-policy: audit
+        with:
+          egress-policy: audit
 
       - name: DEBUG - Github head ref
         run: echo ${{ github.head_ref }} #TODO: to remove
@@ -65,8 +65,8 @@ jobs:
 
     steps:
       - uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895 # v2.6.1
-          with:
-            egress-policy: audit
+        with:
+          egress-policy: audit
 
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
@@ -114,8 +114,8 @@ jobs:
 
     steps:
       - uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895 # v2.6.1
-          with:
-            egress-policy: audit
+        with:
+          egress-policy: audit
 
       - name: Get build binary
         uses: actions/cache/restore@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
@@ -260,8 +260,8 @@ jobs:
 
     steps:
       - uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895 # v2.6.1
-          with:
-            egress-policy: audit
+        with:
+          egress-policy: audit
 
       - uses: geekyeggo/delete-artifact@54ab544f12cdb7b71613a16a2b5a37a9ade990af # v2.0.0
         with:
@@ -276,8 +276,8 @@ jobs:
 
     steps:
       - uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895 # v2.6.1
-          with:
-            egress-policy: audit
+        with:
+          egress-policy: audit
 
       - name: Get build binary
         uses: actions/cache/restore@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
@@ -329,8 +329,8 @@ jobs:
 
     steps:
       - uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895 # v2.6.1
-          with:
-            egress-policy: audit
+        with:
+          egress-policy: audit
 
       - name: Checkout
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
