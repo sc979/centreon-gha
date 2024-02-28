@@ -17,6 +17,9 @@ on:
       - ".github/**"
       - "**/packaging/*.ya?ml"
 
+permissions:
+  contents: read
+
 jobs:
   action-lint:
     runs-on: ubuntu-22.04

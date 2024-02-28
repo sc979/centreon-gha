@@ -46,6 +46,9 @@ on:
       jira_token_test:
         required: true
 
+permissions:
+  contents: read
+
 jobs:
   newman-test-list:
     runs-on: ubuntu-22.04

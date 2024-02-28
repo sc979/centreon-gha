@@ -56,6 +56,9 @@ on:
         required: true
 
 # NIGHTLY <OSS|MODULES|COLLECT> <MAJOR_VERSION> (e.g., NIGHTLY OSS 23.10)
+permissions:
+  contents: read
+
 jobs:
   create-xray-test-plan-and-test-execution:
     runs-on: ubuntu-22.04
